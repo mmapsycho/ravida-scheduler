@@ -342,6 +342,17 @@
         <div id="templatesList"><div class="loading"><div class="spinner"></div>Loading…</div></div>
       </div>
     </div>
+
+    <!-- ===== SHIFT COUNTS TAB (admin + granted staff) ===== -->
+    <div id="tab-counts" class="tabpanel" style="display:none;">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Shift counts by month</h2>
+          <span class="hint">Counts every scheduled shift per doctor, month by month — updates automatically</span>
+        </div>
+        <div id="countsList"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -472,7 +483,7 @@ let currentTab = 'calendar';
 let selectedDate = todayStr();
 let shiftTemplates = [];
 let allStaff = [];
-let unsubDoctors = null, unsubAppts = null, unsubTemplates = null, unsubStaff = null, unsubMySchedule = null;
+let unsubDoctors = null, unsubAppts = null, unsubTemplates = null, unsubStaff = null, unsubMySchedule = null, unsubCounts = null;
 
 function todayStr(offsetDays = 0){
   const d = new Date();
@@ -577,6 +588,7 @@ function buildTabs(){
   const tabs = [{ id:'calendar', label:'Calendar' }];
   if(role === 'doctor') tabs.push({ id:'myschedule', label:'My schedule' });
   if(role === 'admin') tabs.push({ id:'staff', label:'Staff' }, { id:'templates', label:'Shift templates' });
+  if(role === 'admin' || currentProfile.canSeeShiftCounts) tabs.push({ id:'counts', label:'Shift counts' });
   const nav = document.getElementById('tabsNav');
   nav.innerHTML = '';
   tabs.forEach(t => {
@@ -599,10 +611,11 @@ function switchTab(id){
   if(id === 'myschedule') loadMySchedule();
   if(id === 'staff') loadStaffList();
   if(id === 'templates') loadTemplatesTab();
+  if(id === 'counts') loadShiftCounts();
 }
 
 function cleanupListeners(){
-  [unsubDoctors, unsubAppts, unsubTemplates, unsubStaff, unsubMySchedule, unsubRangeShifts, unsubRangeAppts].forEach(u => { if(u) u(); });
+  [unsubDoctors, unsubAppts, unsubTemplates, unsubStaff, unsubMySchedule, unsubRangeShifts, unsubRangeAppts, unsubCounts].forEach(u => { if(u) u(); });
 }
 
 /* ---------------- SHIFT TEMPLATES ---------------- */
@@ -805,6 +818,58 @@ function permissionErrorHtml(err){
   return `<div class="empty-state">Couldn't load data (${escapeHtml(err.message)}). Check your Firestore security rules.</div>`;
 }
 
+/* ---------------- SHIFT COUNTS (admin + granted staff) ---------------- */
+function loadShiftCounts(){
+  if(unsubCounts) unsubCounts();
+  unsubCounts = db.collection('doctorShifts').onSnapshot(snap => {
+    const rows = snap.docs.map(d => d.data());
+    renderShiftCounts(rows);
+  }, err => { document.getElementById('countsList').innerHTML = permissionErrorHtml(err); });
+}
+
+function monthLabel(m){
+  const [y, mm] = m.split('-');
+  const d = new Date(Number(y), Number(mm) - 1, 1);
+  return d.toLocaleDateString('en-GB', { month:'short', year:'2-digit' });
+}
+
+function renderShiftCounts(rows){
+  const el = document.getElementById('countsList');
+  const byDoctor = {};   // doctorId -> { name, months: { 'YYYY-MM': count } }
+  const monthSet = new Set();
+
+  rows.forEach(r => {
+    if(!r.date || !r.doctorId) return;
+    const month = r.date.slice(0, 7);
+    monthSet.add(month);
+    if(!byDoctor[r.doctorId]) byDoctor[r.doctorId] = { name: r.doctorName || 'Unknown', months: {} };
+    byDoctor[r.doctorId].months[month] = (byDoctor[r.doctorId].months[month] || 0) + 1;
+  });
+
+  const months = Array.from(monthSet).sort();
+  const doctors = Object.values(byDoctor).sort((a, b) => a.name.localeCompare(b.name));
+
+  if(doctors.length === 0){
+    el.innerHTML = '<div class="empty-state">No shift data yet — counts will appear here as doctors get scheduled.</div>';
+    return;
+  }
+
+  el.innerHTML = `<div style="overflow-x:auto;"><table class="datatable"><thead><tr>
+      <th>Doctor</th>
+      ${months.map(m => `<th style="text-align:center;">${monthLabel(m)}</th>`).join('')}
+      <th style="text-align:center;">Total</th>
+    </tr></thead><tbody>
+      ${doctors.map(d => {
+        const total = months.reduce((sum, m) => sum + (d.months[m] || 0), 0);
+        return `<tr>
+          <td>${escapeHtml(d.name)}</td>
+          ${months.map(m => `<td style="text-align:center;">${d.months[m] || '—'}</td>`).join('')}
+          <td style="text-align:center;font-weight:700;">${total}</td>
+        </tr>`;
+      }).join('')}
+    </tbody></table></div>`;
+}
+
 function renderDoctorsList(rows){
   const el = document.getElementById('doctorsList');
   if(rows.length === 0){
@@ -1003,13 +1068,18 @@ function renderStaffList(){
   const el = document.getElementById('staffList');
   if(allStaff.length === 0){ el.innerHTML = '<div class="empty-state">No staff accounts yet.</div>'; return; }
   const sorted = [...allStaff].sort((a,b) => (a.role||'').localeCompare(b.role||'') || (a.name||'').localeCompare(b.name||''));
-  el.innerHTML = `<table class="datatable"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>
+  el.innerHTML = `<table class="datatable"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Shift counts</th><th></th></tr></thead><tbody>
     ${sorted.map(s => `
       <tr>
         <td>${escapeHtml(s.name || '—')}</td>
         <td>${escapeHtml(s.email || '—')}</td>
         <td><span class="tag tag-${s.role}">${escapeHtml(s.role)}</span></td>
         <td>${s.active === false ? '<span class="tag tag-inactive">Inactive</span>' : 'Active'}</td>
+        <td style="text-align:center;">
+          ${s.role === 'admin'
+            ? '<span class="hint" style="font-size:11px;">Always</span>'
+            : `<input type="checkbox" onchange="toggleCountsAccess('${s.id}', this.checked)" ${s.canSeeShiftCounts ? 'checked' : ''}>`}
+        </td>
         <td style="white-space:nowrap;">
           <select onchange="changeRole('${s.id}', this.value)" style="padding:4px 6px;border-radius:5px;border:1px solid var(--line);font-size:12px;">
             <option value="doctor" ${s.role==='doctor'?'selected':''}>Doctor</option>
@@ -1033,6 +1103,14 @@ function changeRole(uid, role){
 
 function toggleActive(uid, makeActive){
   db.collection('users').doc(uid).update({ active: makeActive });
+}
+
+function toggleCountsAccess(uid, allowed){
+  db.collection('users').doc(uid).update({ canSeeShiftCounts: allowed });
+  if(uid === currentUser.uid){
+    currentProfile.canSeeShiftCounts = allowed;
+    buildTabs();
+  }
 }
 
 function resetPassword(email){
