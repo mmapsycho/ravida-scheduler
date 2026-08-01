@@ -313,9 +313,14 @@
     <div id="tab-myschedule" class="tabpanel" style="display:none;">
       <div class="panel">
         <div class="panel-head">
-          <h2>My shifts — today to +30 days</h2>
-          <span class="hint">Pick a shift for any day, or leave as "Not coming"</span>
+          <h2>My shifts</h2>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="btn btn-ghost btn-sm" id="mySchedPrevMonth">‹</button>
+            <span id="mySchedMonthLabel" style="font-weight:700;color:var(--teal-900);font-size:13.5px;min-width:120px;text-align:center;"></span>
+            <button class="btn btn-ghost btn-sm" id="mySchedNextMonth">›</button>
+          </div>
         </div>
+        <span class="hint" style="display:block;margin-bottom:12px;color:var(--ink-soft);font-size:12px;">Pick a shift for any day, or leave as "Not coming"</span>
         <div class="schedule-list" id="myScheduleList"><div class="loading"><div class="spinner"></div>Loading…</div></div>
       </div>
     </div>
@@ -347,9 +352,14 @@
     <div id="tab-counts" class="tabpanel" style="display:none;">
       <div class="panel">
         <div class="panel-head">
-          <h2>Shift counts by month</h2>
-          <span class="hint">Counts every scheduled shift per doctor, month by month — updates automatically</span>
+          <h2>Shift counts</h2>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="btn btn-ghost btn-sm" id="countsPrevMonth">‹</button>
+            <span id="countsMonthLabel" style="font-weight:700;color:var(--teal-900);font-size:13.5px;min-width:120px;text-align:center;"></span>
+            <button class="btn btn-ghost btn-sm" id="countsNextMonth">›</button>
+          </div>
         </div>
+        <div class="hint" style="margin-bottom:10px;color:var(--ink-soft);font-size:12.5px;">Counts every scheduled shift per doctor for the selected month.</div>
         <div id="countsList"><div class="loading"><div class="spinner"></div>Loading…</div></div>
       </div>
     </div>
@@ -608,10 +618,10 @@ function switchTab(id){
   document.getElementById('tab-' + id).style.display = 'block';
   document.querySelectorAll('#tabsNav button').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
   if(id === 'calendar'){ renderTwoWeekStrip(); loadCalendarDay(); }
-  if(id === 'myschedule') loadMySchedule();
+  if(id === 'myschedule'){ myScheduleMonth = todayStr().slice(0, 7); loadMySchedule(); }
   if(id === 'staff') loadStaffList();
   if(id === 'templates') loadTemplatesTab();
-  if(id === 'counts') loadShiftCounts();
+  if(id === 'counts'){ countsMonth = todayStr().slice(0, 7); loadShiftCounts(); }
 }
 
 function cleanupListeners(){
@@ -819,55 +829,69 @@ function permissionErrorHtml(err){
 }
 
 /* ---------------- SHIFT COUNTS (admin + granted staff) ---------------- */
-function loadShiftCounts(){
-  if(unsubCounts) unsubCounts();
-  unsubCounts = db.collection('doctorShifts').onSnapshot(snap => {
-    const rows = snap.docs.map(d => d.data());
-    renderShiftCounts(rows);
-  }, err => { document.getElementById('countsList').innerHTML = permissionErrorHtml(err); });
+let countsMonth = todayStr().slice(0, 7); // 'YYYY-MM'
+
+document.getElementById('countsPrevMonth').onclick = () => shiftCountsMonth(-1);
+document.getElementById('countsNextMonth').onclick = () => shiftCountsMonth(1);
+
+function shiftCountsMonth(delta){
+  const [y, mm] = countsMonth.split('-').map(Number);
+  const d = new Date(y, mm - 1 + delta, 1);
+  countsMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  loadShiftCounts();
 }
 
-function monthLabel(m){
+function monthLabelFull(m){
   const [y, mm] = m.split('-');
   const d = new Date(Number(y), Number(mm) - 1, 1);
-  return d.toLocaleDateString('en-GB', { month:'short', year:'2-digit' });
+  return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+}
+
+function monthRange(m){
+  const [y, mm] = m.split('-').map(Number);
+  const start = `${m}-01`;
+  const lastDay = new Date(y, mm, 0).getDate();
+  const end = `${m}-${String(lastDay).padStart(2, '0')}`;
+  return [start, end];
+}
+
+function loadShiftCounts(){
+  document.getElementById('countsMonthLabel').textContent = monthLabelFull(countsMonth);
+  const [start, end] = monthRange(countsMonth);
+  if(unsubCounts) unsubCounts();
+  unsubCounts = db.collection('doctorShifts')
+    .where('date', '>=', start).where('date', '<=', end)
+    .onSnapshot(snap => {
+      const rows = snap.docs.map(d => d.data());
+      renderShiftCounts(rows);
+    }, err => { document.getElementById('countsList').innerHTML = permissionErrorHtml(err); });
 }
 
 function renderShiftCounts(rows){
   const el = document.getElementById('countsList');
-  const byDoctor = {};   // doctorId -> { name, months: { 'YYYY-MM': count } }
-  const monthSet = new Set();
+  const byDoctor = {}; // doctorId -> { name, count }
 
   rows.forEach(r => {
     if(!r.date || !r.doctorId) return;
-    const month = r.date.slice(0, 7);
-    monthSet.add(month);
-    if(!byDoctor[r.doctorId]) byDoctor[r.doctorId] = { name: r.doctorName || 'Unknown', months: {} };
-    byDoctor[r.doctorId].months[month] = (byDoctor[r.doctorId].months[month] || 0) + 1;
+    if(!byDoctor[r.doctorId]) byDoctor[r.doctorId] = { name: r.doctorName || 'Unknown', count: 0 };
+    byDoctor[r.doctorId].count += 1;
   });
 
-  const months = Array.from(monthSet).sort();
   const doctors = Object.values(byDoctor).sort((a, b) => a.name.localeCompare(b.name));
 
   if(doctors.length === 0){
-    el.innerHTML = '<div class="empty-state">No shift data yet — counts will appear here as doctors get scheduled.</div>';
+    el.innerHTML = '<div class="empty-state">No shifts scheduled for this month yet.</div>';
     return;
   }
 
-  el.innerHTML = `<div style="overflow-x:auto;"><table class="datatable"><thead><tr>
-      <th>Doctor</th>
-      ${months.map(m => `<th style="text-align:center;">${monthLabel(m)}</th>`).join('')}
-      <th style="text-align:center;">Total</th>
+  el.innerHTML = `<table class="datatable"><thead><tr>
+      <th>Doctor</th><th style="text-align:center;">Shifts this month</th>
     </tr></thead><tbody>
-      ${doctors.map(d => {
-        const total = months.reduce((sum, m) => sum + (d.months[m] || 0), 0);
-        return `<tr>
-          <td>${escapeHtml(d.name)}</td>
-          ${months.map(m => `<td style="text-align:center;">${d.months[m] || '—'}</td>`).join('')}
-          <td style="text-align:center;font-weight:700;">${total}</td>
-        </tr>`;
-      }).join('')}
-    </tbody></table></div>`;
+      ${doctors.map(d => `<tr>
+        <td>${escapeHtml(d.name)}</td>
+        <td style="text-align:center;font-weight:700;">${d.count}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
 }
 
 function renderDoctorsList(rows){
@@ -991,15 +1015,35 @@ document.getElementById('saveShiftBtn').onclick = async () => {
   }catch(err){ msg.textContent = err.message; msg.className='msg err'; }
 };
 
-/* ---------------- MY SCHEDULE (doctor, today → +30 days) ---------------- */
+/* ---------------- MY SCHEDULE (doctor, month view) ---------------- */
+let myScheduleMonth = todayStr().slice(0, 7); // 'YYYY-MM'
+
+document.getElementById('mySchedPrevMonth').onclick = () => shiftMyScheduleMonth(-1);
+document.getElementById('mySchedNextMonth').onclick = () => shiftMyScheduleMonth(1);
+
+function shiftMyScheduleMonth(delta){
+  const [y, mm] = myScheduleMonth.split('-').map(Number);
+  const d = new Date(y, mm - 1 + delta, 1);
+  myScheduleMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  loadMySchedule();
+}
+
+function daysInMonth(m){
+  const [y, mm] = m.split('-').map(Number);
+  const total = new Date(y, mm, 0).getDate();
+  const dates = [];
+  for(let day = 1; day <= total; day++) dates.push(`${m}-${String(day).padStart(2, '0')}`);
+  return dates;
+}
+
 function loadMySchedule(){
   const el = document.getElementById('myScheduleList');
+  document.getElementById('mySchedMonthLabel').textContent = monthLabelFull(myScheduleMonth);
   if(shiftTemplates.length === 0){
     el.innerHTML = '<div class="empty-state">Your admin has not set up shift types yet — check back soon.</div>';
     return;
   }
-  const dates = [];
-  for(let i=0;i<31;i++) dates.push(todayStr(i));
+  const dates = daysInMonth(myScheduleMonth);
 
   if(unsubMySchedule) unsubMySchedule();
   unsubMySchedule = db.collection('doctorShifts').where('doctorId','==',currentUser.uid).onSnapshot(snap => {
