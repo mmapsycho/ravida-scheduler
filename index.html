@@ -447,12 +447,12 @@
       (Project settings → General → Your apps → SDK setup and configuration)
    ========================================================================= */
 const firebaseConfig = {
-  apiKey: "AIzaSyAdIWtK-ojPZvncUnKeek-OzNRYG--xRbA",
-  authDomain: "ravida-scheduler1432.firebaseapp.com",
-  projectId: "ravida-scheduler1432",
-  storageBucket: "ravida-scheduler1432.firebasestorage.app",
-  messagingSenderId: "208477456951",
-  appId: "1:208477456951:web:2cafc93f28a81ef5a2cdb2"
+  apiKey: "PASTE_YOUR_API_KEY",
+  authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
+  projectId: "PASTE_YOUR_PROJECT_ID",
+  storageBucket: "PASTE_YOUR_PROJECT.appspot.com",
+  messagingSenderId: "PASTE_SENDER_ID",
+  appId: "PASTE_APP_ID"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -828,7 +828,7 @@ function renderDoctorsList(rows){
 }
 
 function removeDoctorShift(id){
-  if(!confirm('Remove this doctor from the day\\'s schedule?')) return;
+  if(!confirm("Remove this doctor from the day's schedule?")) return;
   db.collection('doctorShifts').doc(id).delete();
 }
 
@@ -930,7 +930,7 @@ document.getElementById('saveShiftBtn').onclick = async () => {
 function loadMySchedule(){
   const el = document.getElementById('myScheduleList');
   if(shiftTemplates.length === 0){
-    el.innerHTML = '<div class="empty-state">Your admin hasn\\'t set up shift types yet — check back soon.</div>';
+    el.innerHTML = '<div class="empty-state">Your admin has not set up shift types yet — check back soon.</div>';
     return;
   }
   const dates = [];
