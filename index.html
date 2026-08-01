@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RaVida Scheduler</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --teal-900:#0D3B41;
+    --teal-700:#114B5F;
+    --teal-500:#1C7A8C;
+    --mint-50:#F4F7F5;
+    --mint-100:#E7EEEA;
+    --line:#D6E0DC;
+    --ink:#1B2B2B;
+    --ink-soft:#5B6C68;
+    --coral:#E9724C;
+    --coral-dark:#C85A38;
+    --amber:#D9A441;
+    --ok:#2F8A5B;
+    --white:#FFFFFF;
+    --shadow: 0 1px 2px rgba(13,59,65,0.06), 0 4px 14px rgba(13,59,65,0.06);
+    --r: 8px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    background:var(--mint-50);
+    color:var(--ink);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{font-family:'Manrope',sans-serif;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+  a{color:var(--teal-500);}
+
+  /* ---------- Login ---------- */
+  #loginScreen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:
+      linear-gradient(180deg, var(--teal-900) 0%, var(--teal-700) 100%);
+    padding:24px;
+  }
+  .login-card{
+    background:var(--white);
+    width:100%;
+    max-width:380px;
+    border-radius:12px;
+    padding:36px 32px 30px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+  .brand-mark{
+    width:40px;height:40px;border-radius:10px;
+    background:linear-gradient(135deg, var(--coral), var(--amber));
+    margin-bottom:16px;
+    display:flex;align-items:center;justify-content:center;
+    color:white;font-weight:800;font-family:'Manrope',sans-serif;font-size:18px;
+  }
+  .login-card h1{font-size:22px;margin:0 0 4px;color:var(--teal-900);}
+  .login-card p.sub{color:var(--ink-soft);font-size:13.5px;margin:0 0 24px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.03em;}
+  .field input, .field select{
+    width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:6px;
+    font-size:14.5px;background:var(--mint-50);color:var(--ink);
+    transition:border-color .15s;
+  }
+  .field input:focus, .field select:focus{outline:none;border-color:var(--teal-500);background:white;}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    padding:10px 16px;border-radius:6px;border:none;font-weight:700;font-size:14px;
+    transition:transform .08s, opacity .15s, box-shadow .15s;
+  }
+  .btn:active{transform:scale(0.98);}
+  .btn-primary{background:var(--teal-700);color:white;}
+  .btn-primary:hover{background:var(--teal-900);}
+  .btn-coral{background:var(--coral);color:white;}
+  .btn-coral:hover{background:var(--coral-dark);}
+  .btn-ghost{background:transparent;color:var(--teal-700);border:1.5px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--teal-500);}
+  .btn-danger{background:transparent;color:#B94A34;border:1.5px solid #EAC3BA;}
+  .btn-danger:hover{background:#FBEEEB;}
+  .btn-block{width:100%;}
+  .btn-sm{padding:6px 10px;font-size:12.5px;border-radius:5px;}
+  .btn:disabled{opacity:0.55;cursor:not-allowed;}
+  #loginError{color:#B94A34;font-size:13px;margin-top:10px;min-height:16px;}
+
+  /* ---------- App shell ---------- */
+  #app{display:none;min-height:100vh;}
+  header.topbar{
+    background:var(--teal-900);
+    color:white;
+    padding:14px 24px;
+    display:flex;align-items:center;justify-content:space-between;
+    flex-wrap:wrap;gap:10px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand .brand-mark{margin-bottom:0;width:32px;height:32px;font-size:14px;}
+  .brand-text{font-family:'Manrope',sans-serif;font-weight:800;font-size:16px;letter-spacing:0.01em;}
+  .who{display:flex;align-items:center;gap:12px;}
+  .who .name{font-size:13.5px;font-weight:600;}
+  .role-badge{
+    font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;
+    padding:3px 8px;border-radius:20px;background:rgba(255,255,255,0.14);
+  }
+  nav.tabs{
+    display:flex;gap:2px;padding:0 20px;background:var(--teal-700);
+    overflow-x:auto;
+  }
+  nav.tabs button{
+    background:transparent;border:none;color:rgba(255,255,255,0.75);
+    padding:12px 16px;font-size:13.5px;font-weight:600;border-bottom:3px solid transparent;
+    white-space:nowrap;
+  }
+  nav.tabs button.active{color:white;border-bottom-color:var(--coral);}
+  nav.tabs button:hover{color:white;}
+
+  main{max-width:1100px;margin:0 auto;padding:24px 20px 60px;}
+  .panel{
+    background:white;border:1px solid var(--line);border-radius:var(--r);
+    box-shadow:var(--shadow);padding:20px;margin-bottom:18px;
+  }
+  .panel-head{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:14px;flex-wrap:wrap;gap:10px;
+    border-left:4px solid var(--teal-500);padding-left:10px;
+  }
+  .panel-head h2{font-size:15.5px;margin:0;color:var(--teal-900);}
+  .panel-head .hint{font-size:12px;color:var(--ink-soft);font-weight:500;}
+
+  .day-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+  .day-row input[type=date]{padding:8px 10px;border:1.5px solid var(--line);border-radius:6px;font-size:14px;}
+  .strip-label{font-size:12px;color:var(--ink-soft);font-weight:600;margin:0 0 8px;}
+  .weekstrip{
+    display:grid;grid-template-columns:repeat(7, minmax(64px,1fr));gap:6px;
+  }
+  .wchip{
+    padding:8px 6px 7px;border-radius:8px;border:1.5px solid var(--line);
+    background:white;text-align:center;position:relative;min-height:64px;
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;
+  }
+  .wchip .d{font-size:10px;color:var(--ink-soft);font-weight:700;text-transform:uppercase;}
+  .wchip .n{font-size:15px;font-weight:800;color:var(--teal-900);line-height:1;}
+  .wchip .dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;min-height:7px;max-width:44px;}
+  .wchip .dots span{width:6px;height:6px;border-radius:50%;display:inline-block;}
+  .wchip .apptcount{
+    position:absolute;top:3px;right:3px;background:var(--coral);color:white;
+    font-size:9px;font-weight:800;border-radius:10px;min-width:14px;height:14px;
+    display:flex;align-items:center;justify-content:center;padding:0 3px;
+  }
+  .wchip.today{border-color:var(--coral);}
+  .wchip.selected{background:var(--teal-700);border-color:var(--teal-700);}
+  .wchip.selected .d, .wchip.selected .n{color:white;}
+  @media (max-width:560px){
+    .weekstrip{grid-template-columns:repeat(7, minmax(0,1fr));}
+    .wchip{min-height:56px;padding:6px 3px;}
+  }
+
+  .shift-row, .appt-row{
+    display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:6px;
+    border:1px solid var(--line);margin-bottom:8px;background:var(--mint-50);
+  }
+  .colorbar{width:5px;align-self:stretch;border-radius:3px;background:var(--teal-500);}
+  .rowmain{flex:1;min-width:0;}
+  .rowmain .t1{font-weight:700;font-size:14px;color:var(--ink);}
+  .rowmain .t2{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+  .rowactions{display:flex;gap:6px;flex-shrink:0;}
+  .empty-state{
+    text-align:center;padding:26px 10px;color:var(--ink-soft);font-size:13.5px;
+    border:1.5px dashed var(--line);border-radius:8px;
+  }
+
+  table.datatable{width:100%;border-collapse:collapse;font-size:13.5px;}
+  table.datatable th{
+    text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;
+    color:var(--ink-soft);padding:8px 10px;border-bottom:2px solid var(--line);
+  }
+  table.datatable td{padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  table.datatable tr:last-child td{border-bottom:none;}
+  .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;}
+  .tag-admin{background:#EFE1F5;color:#7B3FA0;}
+  .tag-doctor{background:#E1EEF7;color:#1C5D8C;}
+  .tag-receptionist{background:#E8F1E9;color:#2F7A45;}
+  .tag-inactive{background:#F1E4E1;color:#A65038;}
+
+  .schedule-list{display:flex;flex-direction:column;gap:6px;}
+  .schedule-item{
+    display:flex;align-items:center;gap:12px;padding:9px 10px;border:1px solid var(--line);
+    border-radius:6px;background:var(--mint-50);
+  }
+  .schedule-item .dlabel{width:110px;flex-shrink:0;}
+  .schedule-item .dlabel .n{font-weight:700;font-size:13.5px;}
+  .schedule-item .dlabel .w{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.03em;}
+  .schedule-item.today{border-color:var(--coral);}
+  .schedule-item select{flex:1;padding:8px 10px;border:1.5px solid var(--line);border-radius:6px;font-size:13.5px;}
+  .save-badge{font-size:11px;color:var(--ok);font-weight:700;opacity:0;transition:opacity .3s;white-space:nowrap;}
+  .save-badge.show{opacity:1;}
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop{
+    display:none;position:fixed;inset:0;background:rgba(13,59,65,0.45);
+    align-items:center;justify-content:center;padding:20px;z-index:50;
+  }
+  .modal-backdrop.show{display:flex;}
+  .modal{
+    background:white;border-radius:10px;padding:24px;max-width:420px;width:100%;
+    box-shadow:0 25px 60px rgba(0,0,0,0.3);max-height:88vh;overflow-y:auto;
+  }
+  .modal h3{margin:0 0 4px;color:var(--teal-900);font-size:17px;}
+  .modal p.sub{margin:0 0 18px;color:var(--ink-soft);font-size:13px;}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
+  .msg{font-size:13px;margin-top:8px;min-height:16px;}
+  .msg.err{color:#B94A34;}
+  .msg.ok{color:var(--ok);}
+
+  .toolbar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:2px;}
+  .loading{text-align:center;padding:40px;color:var(--ink-soft);}
+  .spinner{
+    width:26px;height:26px;border:3px solid var(--line);border-top-color:var(--teal-500);
+    border-radius:50%;margin:0 auto 10px;animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  @media (max-width:640px){
+    header.topbar{padding:12px 14px;}
+    main{padding:16px 12px 50px;}
+    .schedule-item{flex-wrap:wrap;}
+    .schedule-item .dlabel{width:auto;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="brand-mark">R</div>
+    <h1>RaVida Scheduler</h1>
+    <p class="sub">Sign in with the account your admin created for you.</p>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="loginEmail" autocomplete="username" placeholder="you@ravidaclinic.com">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••">
+    </div>
+    <button class="btn btn-primary btn-block" id="loginBtn">Sign in</button>
+    <div id="loginError"></div>
+    <p style="margin-top:16px;font-size:12.5px;"><a href="#" id="forgotLink">Forgot password?</a></p>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">R</div>
+      <div class="brand-text">RaVida Scheduler</div>
+    </div>
+    <div class="who">
+      <button class="btn btn-ghost btn-sm" id="changePwBtn" style="background:transparent;border-color:rgba(255,255,255,0.3);color:white;">Change password</button>
+      <span class="name" id="whoName"></span>
+      <span class="role-badge" id="whoRole"></span>
+      <button class="btn btn-coral btn-sm" id="logoutBtn">Log out</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabsNav"></nav>
+
+  <main id="mainArea">
+    <!-- ===== CALENDAR TAB ===== -->
+    <div id="tab-calendar" class="tabpanel">
+      <div class="panel">
+        <div class="day-row">
+          <input type="date" id="calDate">
+          <button class="btn btn-ghost btn-sm" id="calPrev">‹ Prev day</button>
+          <button class="btn btn-ghost btn-sm" id="calToday">Today</button>
+          <button class="btn btn-ghost btn-sm" id="calNext">Next day ›</button>
+          <span style="flex:1"></span>
+          <button class="btn btn-ghost btn-sm" id="calPrev2w">« 2 weeks</button>
+          <button class="btn btn-ghost btn-sm" id="calNext2w">2 weeks »</button>
+        </div>
+        <div class="strip-label" id="stripLabel">Tap a day to see its full schedule below</div>
+        <div class="weekstrip" id="weekStrip"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 id="doctorsHeading">Doctors on shift</h2>
+          <button class="btn btn-primary btn-sm" id="openAddShiftModal" style="display:none;">+ Add doctor to this day</button>
+        </div>
+        <div id="doctorsList"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 id="apptsHeading">Appointments</h2>
+          <button class="btn btn-coral btn-sm" id="openAddApptModal" style="display:none;">+ Add appointment</button>
+        </div>
+        <div id="apptsList"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- ===== MY SCHEDULE TAB (doctor) ===== -->
+    <div id="tab-myschedule" class="tabpanel" style="display:none;">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>My shifts — today to +30 days</h2>
+          <span class="hint">Pick a shift for any day, or leave as "Not coming"</span>
+        </div>
+        <div class="schedule-list" id="myScheduleList"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- ===== STAFF TAB (admin) ===== -->
+    <div id="tab-staff" class="tabpanel" style="display:none;">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Staff accounts</h2>
+          <button class="btn btn-primary btn-sm" id="openAddStaffModal">+ Add account</button>
+        </div>
+        <div id="staffList"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- ===== SHIFT TEMPLATES TAB (admin) ===== -->
+    <div id="tab-templates" class="tabpanel" style="display:none;">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Shift templates</h2>
+          <button class="btn btn-primary btn-sm" id="openAddTemplateModal">+ Add shift type</button>
+        </div>
+        <div class="hint" style="margin-bottom:10px;color:var(--ink-soft);font-size:12.5px;">These are the shift options doctors pick from (e.g. 6-hour blocks). Editing a shift's hours here updates it everywhere it's used going forward.</div>
+        <div id="templatesList"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ MODALS ============ -->
+<div class="modal-backdrop" id="modalAddStaff">
+  <div class="modal">
+    <h3>Add staff account</h3>
+    <p class="sub">Creates a login for a doctor or receptionist. Share the email + temporary password with them directly.</p>
+    <div class="field"><label>Full name</label><input id="staffName" placeholder="Dr. Ahmed Fathy"></div>
+    <div class="field"><label>Email</label><input id="staffEmail" type="email" placeholder="ahmed@ravidaclinic.com"></div>
+    <div class="field"><label>Temporary password (min 6 characters)</label><input id="staffPassword" type="text" placeholder="At least 6 characters"></div>
+    <div class="field"><label>Role</label>
+      <select id="staffRole">
+        <option value="doctor">Doctor</option>
+        <option value="receptionist">Receptionist</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="msg" id="staffMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalAddStaff')">Cancel</button>
+      <button class="btn btn-primary" id="saveStaffBtn">Create account</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalAddTemplate">
+  <div class="modal">
+    <h3 id="templateModalTitle">Add shift type</h3>
+    <input type="hidden" id="templateId">
+    <div class="field"><label>Label</label><input id="templateLabel" placeholder="Morning"></div>
+    <div class="field"><label>Start time</label><input id="templateStart" type="time" value="08:00"></div>
+    <div class="field"><label>End time</label><input id="templateEnd" type="time" value="14:00"></div>
+    <div class="field"><label>Color</label>
+      <select id="templateColor">
+        <option value="#1C7A8C">Teal</option>
+        <option value="#E9724C">Coral</option>
+        <option value="#D9A441">Amber</option>
+        <option value="#7B3FA0">Purple</option>
+        <option value="#2F7A45">Green</option>
+        <option value="#B94A34">Red</option>
+      </select>
+    </div>
+    <div class="msg" id="templateMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalAddTemplate')">Cancel</button>
+      <button class="btn btn-primary" id="saveTemplateBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalAddAppt">
+  <div class="modal">
+    <h3>Add appointment</h3>
+    <input type="hidden" id="apptId">
+    <div class="field"><label>Date</label><input id="apptDate" type="date"></div>
+    <div class="field"><label>Patient name</label><input id="apptPatient" placeholder="Patient full name"></div>
+    <div class="field"><label>Doctor</label><select id="apptDoctor"></select></div>
+    <div class="field"><label>Time</label><input id="apptTime" type="time"></div>
+    <div class="field"><label>Notes (optional)</label><input id="apptNotes" placeholder="Phone number, reason for visit…"></div>
+    <div class="msg" id="apptMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalAddAppt')">Cancel</button>
+      <button class="btn btn-coral" id="saveApptBtn">Save appointment</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalAddShift">
+  <div class="modal">
+    <h3>Add doctor to this day</h3>
+    <input type="hidden" id="shiftDate">
+    <div class="field"><label>Doctor</label><select id="shiftDoctor"></select></div>
+    <div class="field"><label>Shift</label><select id="shiftTemplate"></select></div>
+    <div class="msg" id="shiftMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalAddShift')">Cancel</button>
+      <button class="btn btn-primary" id="saveShiftBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalChangePw">
+  <div class="modal">
+    <h3>Change password</h3>
+    <div class="field"><label>New password (min 6 characters)</label><input id="newPw" type="password"></div>
+    <div class="msg" id="pwMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalChangePw')">Cancel</button>
+      <button class="btn btn-primary" id="savePwBtn">Update password</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FIREBASE ============ -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+/* =========================================================================
+   1) FIREBASE CONFIG — paste the config object from your Firebase project
+      (Project settings → General → Your apps → SDK setup and configuration)
+   ========================================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyAdIWtK-ojPZvncUnKeek-OzNRYG--xRbA",
+  authDomain: "ravida-scheduler1432.firebaseapp.com",
+  projectId: "ravida-scheduler1432",
+  storageBucket: "ravida-scheduler1432.firebasestorage.app",
+  messagingSenderId: "208477456951",
+  appId: "1:208477456951:web:2cafc93f28a81ef5a2cdb2"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// Secondary app instance used ONLY to create new staff accounts without
+// signing the admin out of their own session.
+const secondaryApp = firebase.initializeApp(firebaseConfig, "Secondary");
+const secondaryAuth = secondaryApp.auth();
+
+/* ========================================================================= */
+
+let currentUser = null;   // firebase auth user
+let currentProfile = null; // { name, email, role }
+let currentTab = 'calendar';
+let selectedDate = todayStr();
+let shiftTemplates = [];
+let allStaff = [];
+let unsubDoctors = null, unsubAppts = null, unsubTemplates = null, unsubStaff = null, unsubMySchedule = null;
+
+function todayStr(offsetDays = 0){
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return d.toISOString().slice(0,10);
+}
+function fmtDateHuman(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' });
+}
+function fmtDateShort(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  return { dow: d.toLocaleDateString('en-GB',{weekday:'short'}), num: d.getDate() };
+}
+function to12h(t){
+  if(!t) return '';
+  const [h,m] = t.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hh = h % 12 === 0 ? 12 : h % 12;
+  return `${hh}:${String(m).padStart(2,'0')} ${period}`;
+}
+function escapeHtml(s){
+  return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------------- AUTH ---------------- */
+document.getElementById('loginBtn').onclick = doLogin;
+document.getElementById('loginPassword').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  if(!email || !pw){ errEl.textContent = 'Enter your email and password.'; return; }
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  auth.signInWithEmailAndPassword(email, pw)
+    .catch(err => { errEl.textContent = friendlyAuthError(err); })
+    .finally(() => { btn.disabled = false; btn.textContent = 'Sign in'; });
+}
+
+document.getElementById('forgotLink').onclick = (e) => {
+  e.preventDefault();
+  const email = prompt('Enter your account email to receive a reset link:');
+  if(!email) return;
+  auth.sendPasswordResetEmail(email.trim())
+    .then(() => alert('If that email has an account, a reset link has been sent.'))
+    .catch(err => alert(friendlyAuthError(err)));
+};
+
+document.getElementById('logoutBtn').onclick = () => auth.signOut();
+
+function friendlyAuthError(err){
+  const map = {
+    'auth/invalid-email':'That email address looks invalid.',
+    'auth/user-disabled':'This account has been disabled.',
+    'auth/user-not-found':'No account with that email.',
+    'auth/wrong-password':'Incorrect password.',
+    'auth/invalid-credential':'Incorrect email or password.',
+    'auth/too-many-requests':'Too many attempts. Try again in a few minutes.',
+    'auth/weak-password':'Password must be at least 6 characters.',
+    'auth/email-already-in-use':'That email is already registered.'
+  };
+  return map[err.code] || err.message;
+}
+
+auth.onAuthStateChanged(async (user) => {
+  cleanupListeners();
+  if(!user){
+    currentUser = null; currentProfile = null;
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    return;
+  }
+  currentUser = user;
+  const doc = await db.collection('users').doc(user.uid).get();
+  if(!doc.exists){
+    alert('Your account has no role assigned yet. Ask your admin to set it up.');
+    auth.signOut();
+    return;
+  }
+  currentProfile = doc.data();
+  if(currentProfile.active === false){
+    alert('Your account has been deactivated. Contact your admin.');
+    auth.signOut();
+    return;
+  }
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('whoName').textContent = currentProfile.name || currentProfile.email;
+  document.getElementById('whoRole').textContent = currentProfile.role;
+  buildTabs();
+  loadShiftTemplates();
+  loadStaffList();
+  switchTab('calendar');
+});
+
+/* ---------------- TABS ---------------- */
+function buildTabs(){
+  const role = currentProfile.role;
+  const tabs = [{ id:'calendar', label:'Calendar' }];
+  if(role === 'doctor') tabs.push({ id:'myschedule', label:'My schedule' });
+  if(role === 'admin') tabs.push({ id:'staff', label:'Staff' }, { id:'templates', label:'Shift templates' });
+  const nav = document.getElementById('tabsNav');
+  nav.innerHTML = '';
+  tabs.forEach(t => {
+    const b = document.createElement('button');
+    b.textContent = t.label;
+    b.dataset.tab = t.id;
+    b.onclick = () => switchTab(t.id);
+    nav.appendChild(b);
+  });
+  document.getElementById('openAddShiftModal').style.display = role === 'admin' ? 'inline-flex' : 'none';
+  document.getElementById('openAddApptModal').style.display = (role === 'admin' || role === 'receptionist') ? 'inline-flex' : 'none';
+}
+
+function switchTab(id){
+  currentTab = id;
+  document.querySelectorAll('.tabpanel').forEach(p => p.style.display = 'none');
+  document.getElementById('tab-' + id).style.display = 'block';
+  document.querySelectorAll('#tabsNav button').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+  if(id === 'calendar'){ renderTwoWeekStrip(); loadCalendarDay(); }
+  if(id === 'myschedule') loadMySchedule();
+  if(id === 'staff') loadStaffList();
+  if(id === 'templates') loadTemplatesTab();
+}
+
+function cleanupListeners(){
+  [unsubDoctors, unsubAppts, unsubTemplates, unsubStaff, unsubMySchedule, unsubRangeShifts, unsubRangeAppts].forEach(u => { if(u) u(); });
+}
+
+/* ---------------- SHIFT TEMPLATES ---------------- */
+function loadShiftTemplates(){
+  if(unsubTemplates) unsubTemplates();
+  unsubTemplates = db.collection('shiftTemplates').orderBy('start').onSnapshot(snap => {
+    shiftTemplates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if(currentTab === 'templates') renderTemplatesList();
+    if(currentTab === 'calendar') paintStripDots(twoWeekWindow());
+    if(document.getElementById('modalAddShift').classList.contains('show')) fillShiftTemplateOptions();
+  });
+}
+
+function loadTemplatesTab(){ renderTemplatesList(); }
+
+function renderTemplatesList(){
+  const el = document.getElementById('templatesList');
+  if(shiftTemplates.length === 0){
+    el.innerHTML = '<div class="empty-state">No shift types yet. Add one to get started — e.g. "Morning, 8:00–14:00".</div>';
+    return;
+  }
+  el.innerHTML = shiftTemplates.map(t => `
+    <div class="shift-row">
+      <div class="colorbar" style="background:${t.color || 'var(--teal-500)'}"></div>
+      <div class="rowmain">
+        <div class="t1">${escapeHtml(t.label)}</div>
+        <div class="t2">${to12h(t.start)} – ${to12h(t.end)}</div>
+      </div>
+      <div class="rowactions">
+        <button class="btn btn-ghost btn-sm" onclick="editTemplate('${t.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTemplate('${t.id}')">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('openAddTemplateModal').onclick = () => {
+  document.getElementById('templateModalTitle').textContent = 'Add shift type';
+  document.getElementById('templateId').value = '';
+  document.getElementById('templateLabel').value = '';
+  document.getElementById('templateStart').value = '08:00';
+  document.getElementById('templateEnd').value = '14:00';
+  document.getElementById('templateColor').value = '#1C7A8C';
+  document.getElementById('templateMsg').textContent = '';
+  openModal('modalAddTemplate');
+};
+
+function editTemplate(id){
+  const t = shiftTemplates.find(x => x.id === id);
+  if(!t) return;
+  document.getElementById('templateModalTitle').textContent = 'Edit shift type';
+  document.getElementById('templateId').value = t.id;
+  document.getElementById('templateLabel').value = t.label;
+  document.getElementById('templateStart').value = t.start;
+  document.getElementById('templateEnd').value = t.end;
+  document.getElementById('templateColor').value = t.color || '#1C7A8C';
+  document.getElementById('templateMsg').textContent = '';
+  openModal('modalAddTemplate');
+}
+
+function deleteTemplate(id){
+  if(!confirm('Delete this shift type? Existing schedule entries using it will keep their saved times.')) return;
+  db.collection('shiftTemplates').doc(id).delete();
+}
+
+document.getElementById('saveTemplateBtn').onclick = async () => {
+  const id = document.getElementById('templateId').value;
+  const label = document.getElementById('templateLabel').value.trim();
+  const start = document.getElementById('templateStart').value;
+  const end = document.getElementById('templateEnd').value;
+  const color = document.getElementById('templateColor').value;
+  const msg = document.getElementById('templateMsg');
+  if(!label || !start || !end){ msg.textContent = 'Fill in all fields.'; msg.className='msg err'; return; }
+  const data = { label, start, end, color };
+  try{
+    if(id) await db.collection('shiftTemplates').doc(id).update(data);
+    else await db.collection('shiftTemplates').add(data);
+    closeModal('modalAddTemplate');
+  }catch(err){ msg.textContent = err.message; msg.className='msg err'; }
+};
+
+/* ---------------- CALENDAR TAB ---------------- */
+document.getElementById('calDate').value = selectedDate;
+document.getElementById('calDate').onchange = (e) => { selectedDate = e.target.value; renderTwoWeekStrip(); loadCalendarDay(); };
+document.getElementById('calPrev').onclick = () => shiftDate(-1);
+document.getElementById('calNext').onclick = () => shiftDate(1);
+document.getElementById('calPrev2w').onclick = () => shiftDate(-14);
+document.getElementById('calNext2w').onclick = () => shiftDate(14);
+document.getElementById('calToday').onclick = () => { selectedDate = todayStr(); syncCalDateInput(); renderTwoWeekStrip(); loadCalendarDay(); };
+
+function shiftDate(delta){
+  const d = new Date(selectedDate + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  selectedDate = d.toISOString().slice(0,10);
+  syncCalDateInput(); renderTwoWeekStrip(); loadCalendarDay();
+}
+function syncCalDateInput(){ document.getElementById('calDate').value = selectedDate; }
+
+let unsubRangeShifts = null, unsubRangeAppts = null;
+let rangeShiftsByDate = {}, rangeApptsByDate = {};
+
+function twoWeekWindow(){
+  const base = new Date(selectedDate + 'T00:00:00');
+  const startOffset = base.getDay() === 0 ? -6 : 1 - base.getDay(); // window starts on the Monday of selected date's week
+  const start = new Date(base);
+  start.setDate(base.getDate() + startOffset);
+  const dates = [];
+  for(let i=0;i<14;i++){
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    dates.push(d.toISOString().slice(0,10));
+  }
+  return dates;
+}
+
+function renderTwoWeekStrip(){
+  const dates = twoWeekWindow();
+  document.getElementById('stripLabel').textContent =
+    `2-week view: ${fmtDateShort(dates[0]).num} ${new Date(dates[0]+'T00:00:00').toLocaleDateString('en-GB',{month:'short'})} — ${fmtDateShort(dates[13]).num} ${new Date(dates[13]+'T00:00:00').toLocaleDateString('en-GB',{month:'short'})}. Tap a day for its full schedule.`;
+
+  if(unsubRangeShifts) unsubRangeShifts();
+  if(unsubRangeAppts) unsubRangeAppts();
+  unsubRangeShifts = db.collection('doctorShifts')
+    .where('date','>=',dates[0]).where('date','<=',dates[13])
+    .onSnapshot(snap => {
+      rangeShiftsByDate = {};
+      snap.docs.forEach(d => {
+        const r = d.data();
+        (rangeShiftsByDate[r.date] = rangeShiftsByDate[r.date] || []).push(r);
+      });
+      paintStripDots(dates);
+    });
+  unsubRangeAppts = db.collection('appointments')
+    .where('date','>=',dates[0]).where('date','<=',dates[13])
+    .onSnapshot(snap => {
+      rangeApptsByDate = {};
+      snap.docs.forEach(d => {
+        const r = d.data();
+        rangeApptsByDate[r.date] = (rangeApptsByDate[r.date] || 0) + 1;
+      });
+      paintStripDots(dates);
+    });
+
+  const el = document.getElementById('weekStrip');
+  el.innerHTML = dates.map(ds => {
+    const { dow, num } = fmtDateShort(ds);
+    return `
+    <div class="wchip ${ds === todayStr() ? 'today' : ''} ${ds === selectedDate ? 'selected' : ''}" data-date="${ds}">
+      <div class="d">${dow}</div>
+      <div class="n">${num}</div>
+      <div class="dots" id="dots-${ds}"></div>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.wchip').forEach(chip => {
+    chip.onclick = () => { selectedDate = chip.dataset.date; syncCalDateInput(); renderTwoWeekStrip(); loadCalendarDay(); };
+  });
+  paintStripDots(dates);
+}
+
+function paintStripDots(dates){
+  dates.forEach(ds => {
+    const dotsEl = document.getElementById('dots-' + ds);
+    if(!dotsEl) return;
+    const shifts = rangeShiftsByDate[ds] || [];
+    dotsEl.innerHTML = shifts.slice(0,6).map(r => {
+      const tmpl = shiftTemplates.find(t => t.id === r.shiftTemplateId);
+      return `<span style="background:${tmpl ? tmpl.color : 'var(--teal-500)'}"></span>`;
+    }).join('');
+    const chip = dotsEl.closest('.wchip');
+    const existingBadge = chip.querySelector('.apptcount');
+    if(existingBadge) existingBadge.remove();
+    const count = rangeApptsByDate[ds] || 0;
+    if(count > 0){
+      const badge = document.createElement('div');
+      badge.className = 'apptcount';
+      badge.textContent = count;
+      chip.appendChild(badge);
+    }
+  });
+}
+
+function loadCalendarDay(){
+  document.getElementById('doctorsHeading').textContent = `Doctors on shift — ${fmtDateHuman(selectedDate)}`;
+  document.getElementById('apptsHeading').textContent = `Appointments — ${fmtDateHuman(selectedDate)}`;
+
+  if(unsubDoctors) unsubDoctors();
+  unsubDoctors = db.collection('doctorShifts').where('date','==',selectedDate).onSnapshot(snap => {
+    const rows = snap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a,b) => (a.start||'').localeCompare(b.start||''));
+    renderDoctorsList(rows);
+  }, err => { document.getElementById('doctorsList').innerHTML = permissionErrorHtml(err); });
+
+  if(unsubAppts) unsubAppts();
+  unsubAppts = db.collection('appointments').where('date','==',selectedDate).onSnapshot(snap => {
+    const rows = snap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a,b) => (a.time||'').localeCompare(b.time||''));
+    renderApptsList(rows);
+  }, err => { document.getElementById('apptsList').innerHTML = permissionErrorHtml(err); });
+}
+
+function permissionErrorHtml(err){
+  return `<div class="empty-state">Couldn't load data (${escapeHtml(err.message)}). Check your Firestore security rules.</div>`;
+}
+
+function renderDoctorsList(rows){
+  const el = document.getElementById('doctorsList');
+  if(rows.length === 0){
+    el.innerHTML = '<div class="empty-state">No doctors scheduled for this day yet.</div>';
+    return;
+  }
+  el.innerHTML = rows.map(r => {
+    const tmpl = shiftTemplates.find(t => t.id === r.shiftTemplateId);
+    const color = tmpl ? tmpl.color : 'var(--teal-500)';
+    const canManage = currentProfile.role === 'admin' || (currentProfile.role === 'doctor' && r.doctorId === currentUser.uid);
+    return `
+    <div class="shift-row">
+      <div class="colorbar" style="background:${color}"></div>
+      <div class="rowmain">
+        <div class="t1">${escapeHtml(r.doctorName)}</div>
+        <div class="t2">${escapeHtml(r.label || '')} · ${to12h(r.start)} – ${to12h(r.end)}</div>
+      </div>
+      ${canManage ? `<div class="rowactions"><button class="btn btn-danger btn-sm" onclick="removeDoctorShift('${r.id}')">Remove</button></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function removeDoctorShift(id){
+  if(!confirm('Remove this doctor from the day\\'s schedule?')) return;
+  db.collection('doctorShifts').doc(id).delete();
+}
+
+function renderApptsList(rows){
+  const el = document.getElementById('apptsList');
+  if(rows.length === 0){
+    el.innerHTML = '<div class="empty-state">No appointments booked for this day yet.</div>';
+    return;
+  }
+  const canManage = currentProfile.role === 'admin' || currentProfile.role === 'receptionist';
+  el.innerHTML = rows.map(r => `
+    <div class="appt-row">
+      <div class="colorbar" style="background:var(--coral)"></div>
+      <div class="rowmain">
+        <div class="t1">${to12h(r.time)} — ${escapeHtml(r.patientName)}</div>
+        <div class="t2">Dr. ${escapeHtml(r.doctorName)}${r.notes ? ' · ' + escapeHtml(r.notes) : ''}</div>
+      </div>
+      ${canManage ? `<div class="rowactions"><button class="btn btn-danger btn-sm" onclick="deleteAppt('${r.id}')">Delete</button></div>` : ''}
+    </div>
+  `).join('');
+}
+
+function deleteAppt(id){
+  if(!confirm('Delete this appointment?')) return;
+  db.collection('appointments').doc(id).delete();
+}
+
+/* ---- Add appointment modal ---- */
+document.getElementById('openAddApptModal').onclick = () => {
+  document.getElementById('apptId').value = '';
+  document.getElementById('apptDate').value = selectedDate;
+  document.getElementById('apptPatient').value = '';
+  document.getElementById('apptTime').value = '';
+  document.getElementById('apptNotes').value = '';
+  document.getElementById('apptMsg').textContent = '';
+  fillDoctorOptions('apptDoctor');
+  openModal('modalAddAppt');
+};
+
+function fillDoctorOptions(selectId){
+  const sel = document.getElementById(selectId);
+  const doctors = allStaff.filter(s => s.role === 'doctor' && s.active !== false);
+  sel.innerHTML = doctors.map(d => `<option value="${d.id}" data-name="${escapeHtml(d.name)}">${escapeHtml(d.name)}</option>`).join('') || '<option value="">No doctors yet</option>';
+}
+
+document.getElementById('saveApptBtn').onclick = async () => {
+  const date = document.getElementById('apptDate').value;
+  const patientName = document.getElementById('apptPatient').value.trim();
+  const time = document.getElementById('apptTime').value;
+  const notes = document.getElementById('apptNotes').value.trim();
+  const doctorSel = document.getElementById('apptDoctor');
+  const doctorId = doctorSel.value;
+  const doctorName = doctorSel.selectedOptions[0] ? doctorSel.selectedOptions[0].dataset.name : '';
+  const msg = document.getElementById('apptMsg');
+  if(!date || !patientName || !time || !doctorId){ msg.textContent = 'Fill in date, patient, doctor and time.'; msg.className='msg err'; return; }
+  try{
+    await db.collection('appointments').add({
+      date, patientName, time, notes, doctorId, doctorName,
+      createdBy: currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    closeModal('modalAddAppt');
+  }catch(err){ msg.textContent = err.message; msg.className='msg err'; }
+};
+
+/* ---- Add doctor-shift modal (admin override) ---- */
+document.getElementById('openAddShiftModal').onclick = () => {
+  document.getElementById('shiftDate').value = selectedDate;
+  document.getElementById('shiftMsg').textContent = '';
+  fillDoctorOptions('shiftDoctor');
+  fillShiftTemplateOptions();
+  openModal('modalAddShift');
+};
+
+function fillShiftTemplateOptions(){
+  const sel = document.getElementById('shiftTemplate');
+  sel.innerHTML = shiftTemplates.map(t => `<option value="${t.id}">${escapeHtml(t.label)} (${to12h(t.start)}–${to12h(t.end)})</option>`).join('') || '<option value="">Add a shift type first</option>';
+}
+
+document.getElementById('saveShiftBtn').onclick = async () => {
+  const date = document.getElementById('shiftDate').value;
+  const doctorSel = document.getElementById('shiftDoctor');
+  const doctorId = doctorSel.value;
+  const doctorName = doctorSel.selectedOptions[0] ? doctorSel.selectedOptions[0].dataset.name : '';
+  const templateId = document.getElementById('shiftTemplate').value;
+  const tmpl = shiftTemplates.find(t => t.id === templateId);
+  const msg = document.getElementById('shiftMsg');
+  if(!date || !doctorId || !tmpl){ msg.textContent = 'Choose a doctor and a shift.'; msg.className='msg err'; return; }
+  try{
+    await db.collection('doctorShifts').doc(`${doctorId}_${date}`).set({
+      doctorId, doctorName, date,
+      shiftTemplateId: tmpl.id, label: tmpl.label, start: tmpl.start, end: tmpl.end,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    closeModal('modalAddShift');
+  }catch(err){ msg.textContent = err.message; msg.className='msg err'; }
+};
+
+/* ---------------- MY SCHEDULE (doctor, today → +30 days) ---------------- */
+function loadMySchedule(){
+  const el = document.getElementById('myScheduleList');
+  if(shiftTemplates.length === 0){
+    el.innerHTML = '<div class="empty-state">Your admin hasn\\'t set up shift types yet — check back soon.</div>';
+    return;
+  }
+  const dates = [];
+  for(let i=0;i<31;i++) dates.push(todayStr(i));
+
+  if(unsubMySchedule) unsubMySchedule();
+  unsubMySchedule = db.collection('doctorShifts').where('doctorId','==',currentUser.uid).onSnapshot(snap => {
+    const existing = {};
+    snap.docs.forEach(d => { existing[d.data().date] = { id:d.id, ...d.data() }; });
+    renderMySchedule(dates, existing);
+  });
+}
+
+function renderMySchedule(dates, existing){
+  const el = document.getElementById('myScheduleList');
+  const options = ['<option value="">Not coming</option>'].concat(
+    shiftTemplates.map(t => `<option value="${t.id}">${escapeHtml(t.label)} (${to12h(t.start)}–${to12h(t.end)})</option>`)
+  ).join('');
+
+  el.innerHTML = dates.map(ds => {
+    const d = new Date(ds + 'T00:00:00');
+    const isToday = ds === todayStr();
+    const current = existing[ds];
+    return `
+    <div class="schedule-item ${isToday ? 'today' : ''}" data-date="${ds}">
+      <div class="dlabel">
+        <div class="n">${d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}${isToday ? ' · Today' : ''}</div>
+        <div class="w">${d.toLocaleDateString('en-GB',{weekday:'short'})}</div>
+      </div>
+      <select onchange="saveMyShift('${ds}', this)">${options}</select>
+      <span class="save-badge" id="saved-${ds}">Saved ✓</span>
+    </div>`;
+  }).join('');
+
+  // set selected values after render
+  dates.forEach(ds => {
+    const sel = el.querySelector(`.schedule-item[data-date="${ds}"] select`);
+    if(sel && existing[ds]) sel.value = existing[ds].shiftTemplateId;
+  });
+}
+
+async function saveMyShift(date, selectEl){
+  const templateId = selectEl.value;
+  const badge = document.getElementById('saved-' + date);
+  try{
+    if(!templateId){
+      await db.collection('doctorShifts').doc(`${currentUser.uid}_${date}`).delete().catch(()=>{});
+    } else {
+      const tmpl = shiftTemplates.find(t => t.id === templateId);
+      await db.collection('doctorShifts').doc(`${currentUser.uid}_${date}`).set({
+        doctorId: currentUser.uid, doctorName: currentProfile.name, date,
+        shiftTemplateId: tmpl.id, label: tmpl.label, start: tmpl.start, end: tmpl.end,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    if(badge){ badge.classList.add('show'); setTimeout(() => badge.classList.remove('show'), 1500); }
+  }catch(err){ alert('Could not save: ' + err.message); }
+}
+
+/* ---------------- STAFF (admin) ---------------- */
+function loadStaffList(){
+  if(unsubStaff) unsubStaff();
+  unsubStaff = db.collection('users').onSnapshot(snap => {
+    allStaff = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    if(currentTab === 'staff') renderStaffList();
+  });
+}
+
+function renderStaffList(){
+  const el = document.getElementById('staffList');
+  if(allStaff.length === 0){ el.innerHTML = '<div class="empty-state">No staff accounts yet.</div>'; return; }
+  const sorted = [...allStaff].sort((a,b) => (a.role||'').localeCompare(b.role||'') || (a.name||'').localeCompare(b.name||''));
+  el.innerHTML = `<table class="datatable"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>
+    ${sorted.map(s => `
+      <tr>
+        <td>${escapeHtml(s.name || '—')}</td>
+        <td>${escapeHtml(s.email || '—')}</td>
+        <td><span class="tag tag-${s.role}">${escapeHtml(s.role)}</span></td>
+        <td>${s.active === false ? '<span class="tag tag-inactive">Inactive</span>' : 'Active'}</td>
+        <td style="white-space:nowrap;">
+          <select onchange="changeRole('${s.id}', this.value)" style="padding:4px 6px;border-radius:5px;border:1px solid var(--line);font-size:12px;">
+            <option value="doctor" ${s.role==='doctor'?'selected':''}>Doctor</option>
+            <option value="receptionist" ${s.role==='receptionist'?'selected':''}>Receptionist</option>
+            <option value="admin" ${s.role==='admin'?'selected':''}>Admin</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="toggleActive('${s.id}', ${s.active === false})">${s.active === false ? 'Reactivate' : 'Deactivate'}</button>
+          <button class="btn btn-ghost btn-sm" onclick="resetPassword('${escapeHtml(s.email)}')">Reset PW</button>
+        </td>
+      </tr>
+    `).join('')}
+  </tbody></table>`;
+}
+
+function changeRole(uid, role){
+  if(uid === currentUser.uid && role !== 'admin'){
+    if(!confirm('You are changing your own role and may lose admin access. Continue?')) { renderStaffList(); return; }
+  }
+  db.collection('users').doc(uid).update({ role });
+}
+
+function toggleActive(uid, makeActive){
+  db.collection('users').doc(uid).update({ active: makeActive });
+}
+
+function resetPassword(email){
+  if(!email) return;
+  auth.sendPasswordResetEmail(email)
+    .then(() => alert('Password reset email sent to ' + email))
+    .catch(err => alert(err.message));
+}
+
+/* ---- Add staff modal (uses secondary auth instance) ---- */
+document.getElementById('openAddStaffModal').onclick = () => {
+  document.getElementById('staffName').value = '';
+  document.getElementById('staffEmail').value = '';
+  document.getElementById('staffPassword').value = '';
+  document.getElementById('staffRole').value = 'doctor';
+  document.getElementById('staffMsg').textContent = '';
+  openModal('modalAddStaff');
+};
+
+document.getElementById('saveStaffBtn').onclick = async () => {
+  const name = document.getElementById('staffName').value.trim();
+  const email = document.getElementById('staffEmail').value.trim();
+  const password = document.getElementById('staffPassword').value;
+  const role = document.getElementById('staffRole').value;
+  const msg = document.getElementById('staffMsg');
+  if(!name || !email || password.length < 6){ msg.textContent = 'Fill all fields — password needs 6+ characters.'; msg.className='msg err'; return; }
+  const btn = document.getElementById('saveStaffBtn');
+  btn.disabled = true; btn.textContent = 'Creating…';
+  try{
+    const cred = await secondaryAuth.createUserWithEmailAndPassword(email, password);
+    await db.collection('users').doc(cred.user.uid).set({
+      name, email, role, active: true, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await secondaryAuth.signOut();
+    msg.textContent = 'Account created. Share the email + password with them.';
+    msg.className = 'msg ok';
+    setTimeout(() => closeModal('modalAddStaff'), 1200);
+  }catch(err){
+    msg.textContent = friendlyAuthError(err);
+    msg.className = 'msg err';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Create account';
+  }
+};
+
+/* ---------------- CHANGE OWN PASSWORD ---------------- */
+document.getElementById('changePwBtn').onclick = () => {
+  document.getElementById('newPw').value = '';
+  document.getElementById('pwMsg').textContent = '';
+  openModal('modalChangePw');
+};
+document.getElementById('savePwBtn').onclick = async () => {
+  const pw = document.getElementById('newPw').value;
+  const msg = document.getElementById('pwMsg');
+  if(pw.length < 6){ msg.textContent = 'Minimum 6 characters.'; msg.className='msg err'; return; }
+  try{
+    await currentUser.updatePassword(pw);
+    msg.textContent = 'Password updated.'; msg.className='msg ok';
+    setTimeout(() => closeModal('modalChangePw'), 1000);
+  }catch(err){
+    msg.textContent = err.code === 'auth/requires-recent-login'
+      ? 'Please log out and log back in, then try again.' : err.message;
+    msg.className='msg err';
+  }
+};
+
+/* ---------------- MODAL HELPERS ---------------- */
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-backdrop').forEach(bd => {
+  bd.addEventListener('click', (e) => { if(e.target === bd) bd.classList.remove('show'); });
+});
+</script>
+</body>
+</html>
