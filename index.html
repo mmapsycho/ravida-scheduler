@@ -369,8 +369,9 @@
       <div class="panel" id="itemsMgmtPanel" style="display:none;">
         <div class="panel-head">
           <h2 id="itemsMgmtHeading">Items</h2>
-          <span class="hint">Minimum count and unit per item</span>
+          <button class="btn btn-ghost btn-sm" id="importDefaultItemsBtn">Import default item list (all clinics)</button>
         </div>
+        <div class="msg" id="importItemsMsg"></div>
         <div class="day-row" style="margin-bottom:14px;">
           <input id="newItemName" placeholder="Item name" style="flex:2;min-width:140px;padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;">
           <select id="newItemUnit" style="padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;">
@@ -617,6 +618,7 @@ const CLINICS = [
   {key:'float', label:'Float'}
 ];
 const UNIT_LABELS = {box:'box', bag:'bag', bottle:'bottle', tube:'tube', normal:'unit'};
+const DEFAULT_ITEMS = {"physio_nutrition": [{"name": "plastic cupping", "unit": "bag", "minCount": 2}, {"name": "parrafain oil small", "unit": "bottle", "minCount": 1}, {"name": "dry needling 25 mm", "unit": "box", "minCount": 1}, {"name": "dry needling 50 mm", "unit": "box", "minCount": 1}, {"name": "tongue depressor", "unit": "box", "minCount": 1}, {"name": "gloves medium", "unit": "box", "minCount": 1}, {"name": "gloves large", "unit": "box", "minCount": 1}, {"name": "Gel small", "unit": "bottle", "minCount": 1}, {"name": "tissues each room", "unit": "box", "minCount": 2}, {"name": "Inbody printer paper roll", "unit": "normal", "minCount": 1}, {"name": "insulin syringes", "unit": "normal", "minCount": 20}, {"name": "syringes 3cc", "unit": "normal", "minCount": 20}, {"name": "plaster", "unit": "normal", "minCount": 1}, {"name": "gauze towels pink", "unit": "bag", "minCount": 1}, {"name": "bed sheets blue", "unit": "normal", "minCount": 1}, {"name": "face mask white", "unit": "normal", "minCount": 1}, {"name": "blood pressure monitor", "unit": "normal", "minCount": 1}, {"name": "pulse oximeter", "unit": "normal", "minCount": 1}, {"name": "thermometer", "unit": "normal", "minCount": 1}, {"name": "stethoscope", "unit": "normal", "minCount": 1}, {"name": "alcohol small each room", "unit": "bottle", "minCount": 1}, {"name": "addavent", "unit": "normal", "minCount": 5}, {"name": "vitalipid", "unit": "normal", "minCount": 5}, {"name": "towels small", "unit": "normal", "minCount": 5}, {"name": "towels large", "unit": "normal", "minCount": 5}, {"name": "blood glucose meter", "unit": "normal", "minCount": 1}, {"name": "sterillium disinfectant 2 clinics", "unit": "bottle", "minCount": 2}], "er": [{"name": "thermometer", "unit": "normal", "minCount": 1}, {"name": "pulse oximeter", "unit": "normal", "minCount": 1}, {"name": "blood glucose meter", "unit": "normal", "minCount": 1}, {"name": "ecg paper", "unit": "normal", "minCount": 1}, {"name": "gloves Medium", "unit": "box", "minCount": 1}, {"name": "syringes 3cc", "unit": "normal", "minCount": 20}, {"name": "syringes 5cc", "unit": "normal", "minCount": 20}, {"name": "syringes 10cc", "unit": "normal", "minCount": 20}, {"name": "insulin syringes", "unit": "normal", "minCount": 20}, {"name": "plastic cannula", "unit": "normal", "minCount": 5}, {"name": "bandaid kit", "unit": "box", "minCount": 1}, {"name": "cotton bag", "unit": "bag", "minCount": 1}, {"name": "gauze 6x9", "unit": "normal", "minCount": 5}, {"name": "gauze 15x12", "unit": "normal", "minCount": 5}, {"name": "gauze small", "unit": "normal", "minCount": 5}, {"name": "gauze lrg", "unit": "normal", "minCount": 5}, {"name": "face mask", "unit": "box", "minCount": 1}, {"name": "elastic bandage 12x4", "unit": "normal", "minCount": 1}, {"name": "elastic bandage 15x4", "unit": "normal", "minCount": 1}, {"name": "alcohol bottle", "unit": "bottle", "minCount": 1}, {"name": "n.saline", "unit": "bottle", "minCount": 1}, {"name": "glucose solution", "unit": "bottle", "minCount": 1}, {"name": "ringer solution", "unit": "bottle", "minCount": 1}], "skincare": [{"name": "towels small", "unit": "normal", "minCount": 5}, {"name": "towels medium", "unit": "normal", "minCount": 5}, {"name": "gloves", "unit": "box", "minCount": 1}, {"name": "facemask", "unit": "box", "minCount": 1}, {"name": "plaster", "unit": "normal", "minCount": 1}, {"name": "alcohol small", "unit": "bottle", "minCount": 1}, {"name": "sterillium disinfectant", "unit": "bottle", "minCount": 1}, {"name": "oxyogeneo capsules", "unit": "box", "minCount": 1}, {"name": "overhead covers", "unit": "bag", "minCount": 1}, {"name": "cotton", "unit": "bag", "minCount": 1}, {"name": "sheet mask", "unit": "bag", "minCount": 1}, {"name": "facial mask", "unit": "box", "minCount": 1}, {"name": "Skin whitening vitals", "unit": "normal", "minCount": 1}, {"name": "hair growth vials", "unit": "normal", "minCount": 1}, {"name": "lip booseter", "unit": "normal", "minCount": 1}, {"name": "nuxe face scrub", "unit": "normal", "minCount": 1}, {"name": "eva anti aging serum", "unit": "normal", "minCount": 1}, {"name": "fenfresh wash", "unit": "normal", "minCount": 1}, {"name": "vaseline body oil", "unit": "normal", "minCount": 1}, {"name": "nivea body lotion", "unit": "normal", "minCount": 1}, {"name": "vaseline lip therapy", "unit": "normal", "minCount": 1}, {"name": "joe vitality lip scrub", "unit": "normal", "minCount": 1}, {"name": "lip scrub", "unit": "normal", "minCount": 1}, {"name": "blusher", "unit": "normal", "minCount": 1}, {"name": "mandelic acid serum", "unit": "normal", "minCount": 1}, {"name": "opening pores serum", "unit": "normal", "minCount": 1}, {"name": "ultra brightening serum", "unit": "normal", "minCount": 1}, {"name": "lactic acid serum", "unit": "normal", "minCount": 1}, {"name": "tca serum", "unit": "normal", "minCount": 1}, {"name": "glyolic acid serum", "unit": "normal", "minCount": 1}, {"name": "salicylic acid serum", "unit": "normal", "minCount": 1}, {"name": "retinol serum", "unit": "normal", "minCount": 1}, {"name": "ultraglam cleanser", "unit": "normal", "minCount": 1}, {"name": "ultraglam moisutrizer", "unit": "normal", "minCount": 1}, {"name": "ultraglam nlacinamide serum", "unit": "normal", "minCount": 1}, {"name": "essentuials body scrub", "unit": "normal", "minCount": 1}, {"name": "bobana body scurb", "unit": "normal", "minCount": 1}, {"name": "bobana whitening mask", "unit": "normal", "minCount": 1}, {"name": "bobana hyaluronic peeling mask", "unit": "normal", "minCount": 1}, {"name": "bobana mud mask", "unit": "normal", "minCount": 1}, {"name": "moist toner", "unit": "normal", "minCount": 1}, {"name": "centella cica - toner", "unit": "normal", "minCount": 1}, {"name": "centella cica - serum", "unit": "normal", "minCount": 1}, {"name": "centella cica - eye cream", "unit": "normal", "minCount": 1}, {"name": "centella cica - cream", "unit": "normal", "minCount": 1}, {"name": "centella whitening - serum", "unit": "normal", "minCount": 1}, {"name": "centella whitening - toner", "unit": "normal", "minCount": 1}, {"name": "centella whitening - cleanser", "unit": "normal", "minCount": 1}, {"name": "centella whitening - sunscreen", "unit": "normal", "minCount": 1}, {"name": "centella whitening - cream", "unit": "normal", "minCount": 1}, {"name": "centella tea tree - spot cream", "unit": "normal", "minCount": 1}, {"name": "centella tea tree - sun milk", "unit": "normal", "minCount": 1}, {"name": "centella tea tree - relief ampoule", "unit": "normal", "minCount": 1}, {"name": "centella tea tree - cleanser", "unit": "normal", "minCount": 1}, {"name": "Centella Calming - serum", "unit": "normal", "minCount": 1}, {"name": "Centella Calming - clay mask", "unit": "normal", "minCount": 1}, {"name": "Centella Calming - sunscreen", "unit": "normal", "minCount": 1}, {"name": "Centella Calming - gel cream", "unit": "normal", "minCount": 1}, {"name": "Centella Calming - cleanser", "unit": "normal", "minCount": 1}, {"name": "Centella oily - toner", "unit": "normal", "minCount": 1}, {"name": "Centella oily - cleansing oil", "unit": "normal", "minCount": 1}, {"name": "Centella oily - calming pad", "unit": "normal", "minCount": 1}, {"name": "Centella oily - cream", "unit": "normal", "minCount": 1}, {"name": "Centella hyalu - sun serum", "unit": "normal", "minCount": 1}, {"name": "Centella hyalu - sun stick", "unit": "normal", "minCount": 1}, {"name": "Centella hyalu - sleeping mask", "unit": "normal", "minCount": 1}, {"name": "Betaderm", "unit": "bottle", "minCount": 1}, {"name": "hepta panthenol", "unit": "bottle", "minCount": 1}, {"name": "spectragel", "unit": "bottle", "minCount": 1}], "plastic": [{"name": "mirror", "unit": "normal", "minCount": 1}, {"name": "napkins bag", "unit": "bag", "minCount": 1}, {"name": "face mask", "unit": "box", "minCount": 1}, {"name": "pen mark", "unit": "normal", "minCount": 1}, {"name": "alcohol bottle small", "unit": "bottle", "minCount": 1}, {"name": "alcohol swab", "unit": "box", "minCount": 1}, {"name": "cotton bag", "unit": "bag", "minCount": 1}, {"name": "cannula needles/filler cannula", "unit": "normal", "minCount": 1}, {"name": "bandaid", "unit": "normal", "minCount": 20}, {"name": "insulin syringes", "unit": "normal", "minCount": 20}, {"name": "syringes 3cc", "unit": "normal", "minCount": 20}, {"name": "cotton and gauze packs", "unit": "normal", "minCount": 1}, {"name": "gloves", "unit": "box", "minCount": 1}, {"name": "محلول ملحي", "unit": "bottle", "minCount": 3}, {"name": "vitamin E", "unit": "box", "minCount": 1}, {"name": "avil", "unit": "box", "minCount": 1}, {"name": "dexamethasone", "unit": "box", "minCount": 1}, {"name": "hydrocortisone", "unit": "box", "minCount": 1}, {"name": "brodakyeen", "unit": "normal", "minCount": 1}], "dental": [{"name": "whitening kit", "unit": "box", "minCount": 1}, {"name": "napkins", "unit": "bag", "minCount": 1}, {"name": "gates mani", "unit": "box", "minCount": 1}, {"name": "H.K Files (assorted)", "unit": "box", "minCount": 1}, {"name": "gloves nitrile", "unit": "box", "minCount": 1}, {"name": "syringe 3cc", "unit": "normal", "minCount": 20}, {"name": "mixing tip", "unit": "box", "minCount": 1}, {"name": "saliva ejector", "unit": "box", "minCount": 1}, {"name": "needle irrigation", "unit": "box", "minCount": 1}, {"name": "needles china long", "unit": "box", "minCount": 1}, {"name": "blade size 11", "unit": "box", "minCount": 1}, {"name": "suture egy sorb", "unit": "box", "minCount": 1}, {"name": "cotton roll", "unit": "box", "minCount": 1}, {"name": "articulating paper", "unit": "box", "minCount": 1}, {"name": "putty elite P&P", "unit": "box", "minCount": 1}, {"name": "light body elite", "unit": "box", "minCount": 1}, {"name": "alginate tropicalgin", "unit": "bag", "minCount": 1}, {"name": "masks", "unit": "box", "minCount": 1}, {"name": "Sleeves", "unit": "box", "minCount": 1}, {"name": "impression paste cavix", "unit": "normal", "minCount": 1}, {"name": "temporary crown", "unit": "normal", "minCount": 1}, {"name": "Vio seal SPI", "unit": "tube", "minCount": 1}, {"name": "Fissure sealant", "unit": "normal", "minCount": 1}, {"name": "Composite BEA", "unit": "tube", "minCount": 1}, {"name": "Composite dentsphy", "unit": "tube", "minCount": 1}, {"name": "Eva composite", "unit": "tube", "minCount": 1}, {"name": "Glass Ionomer Nova Cement", "unit": "box", "minCount": 1}, {"name": "Fuji 3 capsules", "unit": "normal", "minCount": 1}, {"name": "temporary cement charm", "unit": "normal", "minCount": 1}, {"name": "total cem itena", "unit": "tube", "minCount": 1}, {"name": "mta", "unit": "tube", "minCount": 1}, {"name": "calcium hydroxide", "unit": "tube", "minCount": 1}, {"name": "bond bisvo selfetch 4ml", "unit": "tube", "minCount": 1}, {"name": "acid h cream", "unit": "tube", "minCount": 1}, {"name": "porcelain etch ultradent", "unit": "tube", "minCount": 1}, {"name": "silane ultradent", "unit": "tube", "minCount": 1}, {"name": "sodium hypochlorite 2%", "unit": "box", "minCount": 1}, {"name": "Chlorhexidine 2%", "unit": "box", "minCount": 1}, {"name": "mouth wash tablet psp", "unit": "box", "minCount": 1}, {"name": "fluroide vamish", "unit": "normal", "minCount": 1}, {"name": "dental floss", "unit": "box", "minCount": 1}, {"name": "polish paste alpha", "unit": "box", "minCount": 1}, {"name": "finishing discs", "unit": "box", "minCount": 1}, {"name": "finishing strip 25", "unit": "box", "minCount": 1}, {"name": "celluloid strip", "unit": "box", "minCount": 1}, {"name": "matrix band 12 pkt", "unit": "box", "minCount": 1}, {"name": "matrix sectional", "unit": "box", "minCount": 1}, {"name": "wedges", "unit": "box", "minCount": 1}, {"name": "retraction cord", "unit": "box", "minCount": 1}, {"name": "dam rubber sheets", "unit": "box", "minCount": 1}, {"name": "wax", "unit": "box", "minCount": 1}, {"name": "brushes for composite", "unit": "box", "minCount": 1}, {"name": "bond brush 100pk", "unit": "box", "minCount": 1}, {"name": "tip for etch", "unit": "bag", "minCount": 1}, {"name": "guta percha 4/6 meta", "unit": "box", "minCount": 1}, {"name": "rotary e-flex gold", "unit": "normal", "minCount": 1}, {"name": "bur carbide germany", "unit": "normal", "minCount": 1}, {"name": "egyptian high speed?", "unit": "normal", "minCount": 1}, {"name": "okodent", "unit": "normal", "minCount": 1}, {"name": "mani original", "unit": "normal", "minCount": 1}, {"name": "bur endo z", "unit": "normal", "minCount": 1}, {"name": "topical usa", "unit": "box", "minCount": 1}, {"name": "artinibsa (anaesthetic)", "unit": "box", "minCount": 1}, {"name": "hemostop jk", "unit": "box", "minCount": 1}, {"name": "edta cream meta", "unit": "box", "minCount": 1}, {"name": "flow voco", "unit": "box", "minCount": 1}, {"name": "denu dam", "unit": "box", "minCount": 1}, {"name": "oil spray topdental", "unit": "bottle", "minCount": 1}], "float": [{"name": "towel lrg", "unit": "normal", "minCount": 1}, {"name": "towel medium", "unit": "normal", "minCount": 1}, {"name": "showergel", "unit": "bottle", "minCount": 1}, {"name": "soap", "unit": "normal", "minCount": 1}]};
 const PERM_KEYS = ['admin','schedule','checkin','receptionist','shiftCounts','adminItems','supervision'];
 const PERM_LABELS = {admin:'Admin', schedule:'Schedule', checkin:'Check-in', receptionist:'Receptionist', shiftCounts:'Shift counts', adminItems:'Admin items', supervision:'Supervision'};
 
@@ -1273,14 +1275,24 @@ function loadStaffList(){
   });
 }
 
+let showInactiveAccounts = false;
+
 function renderStaffList(){
   const el = document.getElementById('staffList');
   if(allStaff.length === 0){ el.innerHTML = '<div class="empty-state">No staff accounts yet.</div>'; return; }
-  const sorted = [...allStaff].sort((a,b) => (a.name||'').localeCompare(b.name||''));
-  el.innerHTML = `<table class="datatable"><thead><tr><th>Name</th><th>Email</th><th>Permissions</th><th>Status</th><th></th></tr></thead><tbody>
+  const inactiveCount = allStaff.filter(s => s.active === false).length;
+  const visible = allStaff.filter(s => showInactiveAccounts || s.active !== false);
+  const sorted = [...visible].sort((a,b) => (a.name||'').localeCompare(b.name||''));
+
+  const filterRow = inactiveCount > 0 ? `
+    <label style="font-size:12.5px;font-weight:600;color:var(--ink-soft);display:flex;align-items:center;gap:6px;margin-bottom:12px;">
+      <input type="checkbox" id="showInactiveToggle" ${showInactiveAccounts ? 'checked' : ''}> Show inactive accounts (${inactiveCount})
+    </label>` : '';
+
+  const table = sorted.length === 0 ? '<div class="empty-state">No active accounts.</div>' : `<table class="datatable"><thead><tr><th>Name</th><th>Email</th><th>Permissions</th><th>Status</th><th></th></tr></thead><tbody>
     ${sorted.map(s => `
       <tr>
-        <td>${escapeHtml(s.name || '—')}</td>
+        <td><input value="${escapeHtml(s.name || '')}" onchange="updateStaffName('${s.id}', this.value)" style="width:130px;padding:6px 8px;border:1.5px solid var(--line);border-radius:5px;font-size:13px;"></td>
         <td>${escapeHtml(s.email || '—')}</td>
         <td>
           <div class="perm-check-cell">
@@ -1291,10 +1303,31 @@ function renderStaffList(){
         <td style="white-space:nowrap;">
           <button class="btn btn-ghost btn-sm" onclick="toggleActive('${s.id}', ${s.active === false})">${s.active === false ? 'Reactivate' : 'Deactivate'}</button>
           <button class="btn btn-ghost btn-sm" onclick="resetPassword('${escapeHtml(s.email)}')">Reset PW</button>
+          ${s.active === false ? `<button class="btn btn-danger btn-sm" onclick="deleteStaffPermanently('${s.id}')" title="Delete permanently">✕</button>` : ''}
         </td>
       </tr>
     `).join('')}
   </tbody></table>`;
+
+  el.innerHTML = filterRow + table;
+  const toggle = document.getElementById('showInactiveToggle');
+  if(toggle) toggle.onchange = () => { showInactiveAccounts = toggle.checked; renderStaffList(); };
+}
+
+function updateStaffName(uid, val){
+  val = val.trim();
+  if(!val) return;
+  db.collection('users').doc(uid).update({ name: val });
+  if(uid === currentUser.uid){
+    currentProfile.name = val;
+    document.getElementById('whoName').textContent = val;
+  }
+}
+
+function deleteStaffPermanently(uid){
+  if(uid === currentUser.uid){ alert("You can't delete your own account."); return; }
+  if(!confirm('Permanently delete this account? This removes their access completely and cannot be undone.')) return;
+  db.collection('users').doc(uid).delete();
 }
 
 function togglePermission(uid, key, checked){
@@ -1472,15 +1505,50 @@ document.getElementById('addItemBtn').onclick = async () => {
   const unit = document.getElementById('newItemUnit').value;
   const min = Number(document.getElementById('newItemMin').value) || 1;
   if(!name) return;
-  await db.collection('items').add({ clinic: activeClinic, name, unit, minCount: min });
-  document.getElementById('newItemName').value = '';
-  document.getElementById('newItemMin').value = 1;
+  try{
+    await db.collection('items').add({ clinic: activeClinic, name, unit, minCount: min });
+    document.getElementById('newItemName').value = '';
+    document.getElementById('newItemMin').value = 1;
+  }catch(err){
+    alert('Could not add item: ' + err.message);
+  }
 };
 
 function deleteChecklistItem(id){
   if(!confirm('Remove this item?')) return;
-  db.collection('items').doc(id).delete();
+  db.collection('items').doc(id).delete().catch(err => alert('Could not remove item: ' + err.message));
 }
+
+document.getElementById('importDefaultItemsBtn').onclick = async () => {
+  const msg = document.getElementById('importItemsMsg');
+  const btn = document.getElementById('importDefaultItemsBtn');
+  if(!confirm('Import the default item list for all 6 clinics? Items whose name already exists in a clinic will be skipped, so this is safe to run more than once.')) return;
+  btn.disabled = true; btn.textContent = 'Importing…';
+  msg.textContent = ''; msg.className = 'msg';
+  try{
+    let added = 0, skipped = 0;
+    for(const clinicKey of Object.keys(DEFAULT_ITEMS)){
+      const existingSnap = await db.collection('items').where('clinic','==',clinicKey).get();
+      const existingNames = new Set(existingSnap.docs.map(d => (d.data().name || '').trim().toLowerCase()));
+      const batch = db.batch();
+      let batchCount = 0;
+      for(const it of DEFAULT_ITEMS[clinicKey]){
+        if(existingNames.has(it.name.trim().toLowerCase())){ skipped++; continue; }
+        const ref = db.collection('items').doc();
+        batch.set(ref, { clinic: clinicKey, name: it.name, unit: it.unit, minCount: it.minCount });
+        batchCount++; added++;
+      }
+      if(batchCount > 0) await batch.commit();
+    }
+    msg.textContent = `Done — added ${added} items, skipped ${skipped} already there.`;
+    msg.className = 'msg ok';
+  }catch(err){
+    msg.textContent = 'Import failed: ' + err.message;
+    msg.className = 'msg err';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Import default item list (all clinics)';
+  }
+};
 
 function openEditItem(id){
   const it = clinicItems.find(i => i.id === id);
@@ -1535,13 +1603,15 @@ function renderChecklistItems(){
 async function setChecklistOk(itemId){
   const it = clinicItems.find(i => i.id === itemId);
   if(!it) return;
-  await db.collection('checkins').doc(`${itemId}_${checklistSelectedDate}`).set({
-    clinic: activeClinic, clinicLabel: clinicLabel(activeClinic),
-    itemId, itemName: it.name, unit: it.unit,
-    date: checklistSelectedDate, status: 'ok', missingCount: 0,
-    userId: currentUser.uid, userName: currentProfile.name,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  });
+  try{
+    await db.collection('checkins').doc(`${itemId}_${checklistSelectedDate}`).set({
+      clinic: activeClinic, clinicLabel: clinicLabel(activeClinic),
+      itemId, itemName: it.name, unit: it.unit,
+      date: checklistSelectedDate, status: 'ok', missingCount: 0,
+      userId: currentUser.uid, userName: currentProfile.name,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }catch(err){ alert('Could not save check-in: ' + err.message); }
 }
 
 let missingModalItemId = null;
@@ -1560,14 +1630,17 @@ document.getElementById('confirmMissingBtn').onclick = async () => {
   const it = clinicItems.find(i => i.id === missingModalItemId);
   if(!it) return;
   const val = Number(document.getElementById('missingCountInput').value) || it.minCount;
-  await db.collection('checkins').doc(`${it.id}_${checklistSelectedDate}`).set({
-    clinic: activeClinic, clinicLabel: clinicLabel(activeClinic),
-    itemId: it.id, itemName: it.name, unit: it.unit,
-    date: checklistSelectedDate, status: 'missing', missingCount: val,
-    userId: currentUser.uid, userName: currentProfile.name,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  });
-  closeModal('modalMissingCount');
+  const msg = document.getElementById('missingMsg');
+  try{
+    await db.collection('checkins').doc(`${it.id}_${checklistSelectedDate}`).set({
+      clinic: activeClinic, clinicLabel: clinicLabel(activeClinic),
+      itemId: it.id, itemName: it.name, unit: it.unit,
+      date: checklistSelectedDate, status: 'missing', missingCount: val,
+      userId: currentUser.uid, userName: currentProfile.name,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    closeModal('modalMissingCount');
+  }catch(err){ msg.textContent = err.message; msg.className = 'msg err'; }
 };
 
 function renderNotificationsFeed(){
