@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RaVida Scheduler</title>
+<title>RaVida Schedule/Checkins</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -73,6 +73,9 @@
     transition:border-color .15s;
   }
   .field input:focus, .field select:focus{outline:none;border-color:var(--teal-500);background:white;}
+  .pw-wrap{position:relative;}
+  .pw-wrap input{padding-right:38px;}
+  .eye-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:16px;cursor:pointer;color:var(--ink-soft);padding:4px;}
   .btn{
     display:inline-flex;align-items:center;justify-content:center;gap:6px;
     padding:10px 16px;border-radius:6px;border:none;font-weight:700;font-size:14px;
@@ -106,8 +109,9 @@
   .brand-text{font-family:'Manrope',sans-serif;font-weight:800;font-size:16px;letter-spacing:0.01em;}
   .who{display:flex;align-items:center;gap:12px;}
   .who .name{font-size:13.5px;font-weight:600;}
+  .role-badges{display:flex;gap:4px;flex-wrap:wrap;}
   .role-badge{
-    font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;
+    font-size:10px;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;
     padding:3px 8px;border-radius:20px;background:rgba(255,255,255,0.14);
   }
   nav.tabs{
@@ -121,6 +125,13 @@
   }
   nav.tabs button.active{color:white;border-bottom-color:var(--coral);}
   nav.tabs button:hover{color:white;}
+
+  nav.subtabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;}
+  nav.subtabs button{
+    flex:0 0 auto;padding:8px 14px;border-radius:8px;border:1.5px solid var(--line);
+    background:white;color:var(--teal-900);cursor:pointer;font-weight:700;font-size:13px;white-space:nowrap;
+  }
+  nav.subtabs button.active{background:var(--teal-700);color:white;border-color:var(--teal-700);}
 
   main{max-width:1100px;margin:0 auto;padding:24px 20px 60px;}
   .panel{
@@ -163,7 +174,7 @@
     .wchip{min-height:56px;padding:6px 3px;}
   }
 
-  .shift-row, .appt-row{
+  .shift-row, .appt-row, .item-row{
     display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:6px;
     border:1px solid var(--line);margin-bottom:8px;background:var(--mint-50);
   }
@@ -184,11 +195,18 @@
   }
   table.datatable td{padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:middle;}
   table.datatable tr:last-child td{border-bottom:none;}
-  .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;}
+  .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;margin:1px 2px 1px 0;}
   .tag-admin{background:#EFE1F5;color:#7B3FA0;}
-  .tag-doctor{background:#E1EEF7;color:#1C5D8C;}
+  .tag-schedule{background:#E1EEF7;color:#1C5D8C;}
   .tag-receptionist{background:#E8F1E9;color:#2F7A45;}
+  .tag-checkin{background:#FCEFE2;color:#B36A18;}
+  .tag-shiftCounts{background:#EAF3EF;color:#1C7A8C;}
+  .tag-supervision{background:#FBE4E0;color:#B94A34;}
   .tag-inactive{background:#F1E4E1;color:#A65038;}
+  .perm-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 14px;}
+  .perm-grid label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink);text-transform:none;letter-spacing:0;margin:0;}
+  .perm-check-cell{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  .perm-check-cell label{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--ink-soft);text-transform:none;white-space:nowrap;}
 
   .schedule-list{display:flex;flex-direction:column;gap:6px;}
   .schedule-item{
@@ -202,6 +220,19 @@
   .schedule-item select{flex:1;padding:8px 10px;border:1.5px solid var(--line);border-radius:6px;font-size:13.5px;}
   .save-badge{font-size:11px;color:var(--ok);font-weight:700;opacity:0;transition:opacity .3s;white-space:nowrap;}
   .save-badge.show{opacity:1;}
+
+  /* ---------- Checklist specific ---------- */
+  .item-name{font-weight:700;font-size:14px;color:var(--ink);}
+  .item-meta{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+  .check-buttons{display:flex;gap:8px;flex-shrink:0;}
+  .cbtn{width:40px;height:40px;border-radius:8px;border:1.5px solid var(--line);background:white;font-size:1rem;font-weight:800;cursor:pointer;}
+  .cbtn.ok.active{background:var(--ok);border-color:var(--ok);color:#fff;}
+  .cbtn.x.active{background:var(--coral);border-color:var(--coral);color:#fff;}
+  .missing-badge{font-size:11px;background:#FBE4E0;color:var(--coral-dark);padding:2px 8px;border-radius:20px;font-weight:700;margin-left:6px;}
+  .feed-item{padding:10px 12px;border-radius:8px;border-left:4px solid var(--ok);background:var(--mint-50);margin-bottom:8px;}
+  .feed-item.missing{border-left-color:var(--coral);}
+  .feed-top{display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:700;color:var(--teal-900);}
+  .feed-sub{font-size:11.5px;color:var(--ink-soft);margin-top:3px;}
 
   /* ---------- Modal ---------- */
   .modal-backdrop{
@@ -233,6 +264,8 @@
     main{padding:16px 12px 50px;}
     .schedule-item{flex-wrap:wrap;}
     .schedule-item .dlabel{width:auto;}
+    .item-row{flex-wrap:wrap;}
+    .perm-grid{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -242,7 +275,7 @@
 <div id="loginScreen">
   <div class="login-card">
     <div class="brand-mark">R</div>
-    <h1>RaVida Scheduler</h1>
+    <h1>RaVida Schedule/Checkins</h1>
     <p class="sub">Sign in with the account your admin created for you.</p>
     <div class="field">
       <label>Email</label>
@@ -250,7 +283,10 @@
     </div>
     <div class="field">
       <label>Password</label>
-      <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••">
+      <div class="pw-wrap">
+        <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••">
+        <button type="button" class="eye-toggle" id="toggleLoginPw">👁️</button>
+      </div>
     </div>
     <button class="btn btn-primary btn-block" id="loginBtn">Sign in</button>
     <div id="loginError"></div>
@@ -263,12 +299,12 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">R</div>
-      <div class="brand-text">RaVida Scheduler</div>
+      <div class="brand-text">RaVida Schedule/Checkins</div>
     </div>
     <div class="who">
       <button class="btn btn-ghost btn-sm" id="changePwBtn" style="background:transparent;border-color:rgba(255,255,255,0.3);color:white;">Change password</button>
       <span class="name" id="whoName"></span>
-      <span class="role-badge" id="whoRole"></span>
+      <div class="role-badges" id="whoRoles"></div>
       <button class="btn btn-coral btn-sm" id="logoutBtn">Log out</button>
     </div>
   </header>
@@ -309,7 +345,7 @@
       </div>
     </div>
 
-    <!-- ===== MY SCHEDULE TAB (doctor) ===== -->
+    <!-- ===== MY SCHEDULE TAB ===== -->
     <div id="tab-myschedule" class="tabpanel" style="display:none;">
       <div class="panel">
         <div class="panel-head">
@@ -322,6 +358,50 @@
         </div>
         <span class="hint" style="display:block;margin-bottom:12px;color:var(--ink-soft);font-size:12px;">Pick a shift for any day, or leave as "Not coming"</span>
         <div class="schedule-list" id="myScheduleList"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- ===== CHECKLIST TAB ===== -->
+    <div id="tab-checklist" class="tabpanel" style="display:none;">
+      <nav class="subtabs" id="clinicSubtabs"></nav>
+
+      <div class="panel" id="itemsMgmtPanel" style="display:none;">
+        <div class="panel-head">
+          <h2 id="itemsMgmtHeading">Items</h2>
+          <span class="hint">Minimum count and unit per item</span>
+        </div>
+        <div class="day-row" style="margin-bottom:14px;">
+          <input id="newItemName" placeholder="Item name" style="flex:2;min-width:140px;padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;">
+          <select id="newItemUnit" style="padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;">
+            <option value="box">box</option>
+            <option value="bag">bag</option>
+            <option value="bottle">bottle</option>
+            <option value="tube">tube</option>
+            <option value="normal">normal</option>
+          </select>
+          <input id="newItemMin" type="number" min="1" value="1" style="width:80px;padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;">
+          <button class="btn btn-primary btn-sm" id="addItemBtn">+ Add item</button>
+        </div>
+        <div id="itemsMgmtList"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 id="checklistHeading">Checklist</h2>
+        </div>
+        <div class="day-row">
+          <input type="date" id="checklistDate">
+          <button class="btn btn-ghost btn-sm" id="checklistToday">Today</button>
+        </div>
+        <div id="checklistItems"></div>
+      </div>
+
+      <div class="panel" id="notificationsPanel" style="display:none;">
+        <div class="panel-head">
+          <h2>Notifications</h2>
+          <span class="hint">Live — who checked what, and when</span>
+        </div>
+        <div id="notificationsFeed"></div>
       </div>
     </div>
 
@@ -348,7 +428,7 @@
       </div>
     </div>
 
-    <!-- ===== SHIFT COUNTS TAB (admin + granted staff) ===== -->
+    <!-- ===== SHIFT COUNTS TAB ===== -->
     <div id="tab-counts" class="tabpanel" style="display:none;">
       <div class="panel">
         <div class="panel-head">
@@ -370,16 +450,20 @@
 <div class="modal-backdrop" id="modalAddStaff">
   <div class="modal">
     <h3>Add staff account</h3>
-    <p class="sub">Creates a login for a doctor or receptionist. Share the email + temporary password with them directly.</p>
+    <p class="sub">Creates a login for this person. Share the email + temporary password with them directly.</p>
     <div class="field"><label>Full name</label><input id="staffName" placeholder="Dr. Ahmed Fathy"></div>
     <div class="field"><label>Email</label><input id="staffEmail" type="email" placeholder="ahmed@ravidaclinic.com"></div>
     <div class="field"><label>Temporary password (min 6 characters)</label><input id="staffPassword" type="text" placeholder="At least 6 characters"></div>
-    <div class="field"><label>Role</label>
-      <select id="staffRole">
-        <option value="doctor">Doctor</option>
-        <option value="receptionist">Receptionist</option>
-        <option value="admin">Admin</option>
-      </select>
+    <div class="field">
+      <label>Permissions</label>
+      <div class="perm-grid">
+        <label><input type="checkbox" id="permAdmin"> Admin</label>
+        <label><input type="checkbox" id="permSchedule"> Schedule (doctor)</label>
+        <label><input type="checkbox" id="permCheckin"> Check items</label>
+        <label><input type="checkbox" id="permReceptionist"> Receptionist</label>
+        <label><input type="checkbox" id="permShiftCounts"> See shift counts</label>
+        <label><input type="checkbox" id="permSupervision"> Supervision</label>
+      </div>
     </div>
     <div class="msg" id="staffMsg"></div>
     <div class="modal-actions">
@@ -457,6 +541,42 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="modalMissingCount">
+  <div class="modal">
+    <h3 id="missingModalTitle">How many are missing?</h3>
+    <p class="sub" id="missingModalSub"></p>
+    <div class="field"><label>Missing count</label><input id="missingCountInput" type="number" min="1" value="1"></div>
+    <div class="msg" id="missingMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalMissingCount')">Cancel</button>
+      <button class="btn btn-coral" id="confirmMissingBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalEditItem">
+  <div class="modal">
+    <h3>Edit item</h3>
+    <input type="hidden" id="editItemId">
+    <div class="field"><label>Name</label><input id="editItemName"></div>
+    <div class="field"><label>Unit</label>
+      <select id="editItemUnit">
+        <option value="box">box</option>
+        <option value="bag">bag</option>
+        <option value="bottle">bottle</option>
+        <option value="tube">tube</option>
+        <option value="normal">normal</option>
+      </select>
+    </div>
+    <div class="field"><label>Minimum count</label><input id="editItemMin" type="number" min="1"></div>
+    <div class="msg" id="editItemMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalEditItem')">Cancel</button>
+      <button class="btn btn-primary" id="saveEditItemBtn">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ FIREBASE ============ -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -464,8 +584,7 @@
 
 <script>
 /* =========================================================================
-   1) FIREBASE CONFIG — paste the config object from your Firebase project
-      (Project settings → General → Your apps → SDK setup and configuration)
+   1) FIREBASE CONFIG — same project as before (RaVida scheduler)
    ========================================================================= */
 const firebaseConfig = {
   apiKey: "AIzaSyAdIWtK-ojPZvncUnKeek-OzNRYG--xRbA",
@@ -487,18 +606,35 @@ const secondaryAuth = secondaryApp.auth();
 
 /* ========================================================================= */
 
-let currentUser = null;   // firebase auth user
-let currentProfile = null; // { name, email, role }
+const CLINICS = [
+  {key:'physio_nutrition', label:'Physiotherapy + Nutrition'},
+  {key:'plastic', label:'Plastic'},
+  {key:'skincare', label:'Skincare'},
+  {key:'dental', label:'Dental'},
+  {key:'er', label:'ER'},
+  {key:'float', label:'Float'}
+];
+const UNIT_LABELS = {box:'box', bag:'bag', bottle:'bottle', tube:'tube', normal:'unit'};
+const PERM_KEYS = ['admin','schedule','checkin','receptionist','shiftCounts','supervision'];
+const PERM_LABELS = {admin:'Admin', schedule:'Schedule', checkin:'Check-in', receptionist:'Receptionist', shiftCounts:'Shift counts', supervision:'Supervision'};
+
+let currentUser = null;
+let currentProfile = null;
 let currentTab = 'calendar';
 let selectedDate = todayStr();
 let shiftTemplates = [];
 let allStaff = [];
 let unsubDoctors = null, unsubAppts = null, unsubTemplates = null, unsubStaff = null, unsubMySchedule = null, unsubCounts = null;
+let unsubItems = null, unsubChecklistDay = null, unsubFeed = null;
+let activeClinic = CLINICS[0].key;
+let clinicItems = [];
+let checklistDayCheckins = [];
+let checkinsFeed = [];
 
 function todayStr(offsetDays = 0){
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
-  return d.toISOString().slice(0,10);
+  return d.toLocaleDateString('en-CA');
 }
 function fmtDateHuman(dateStr){
   const d = new Date(dateStr + 'T00:00:00');
@@ -516,12 +652,32 @@ function to12h(t){
   return `${hh}:${String(m).padStart(2,'0')} ${period}`;
 }
 function escapeHtml(s){
-  return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return (s || '').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------------- PERMISSIONS ---------------- */
+function getPerms(profile){
+  if(profile.permissions) return Object.assign({admin:false,schedule:false,checkin:false,receptionist:false,shiftCounts:false,supervision:false}, profile.permissions);
+  const p = {admin:false,schedule:false,checkin:false,receptionist:false,shiftCounts:false,supervision:false};
+  if(profile.role==='admin') p.admin = true;
+  if(profile.role==='doctor') p.schedule = true;
+  if(profile.role==='receptionist') p.receptionist = true;
+  if(profile.canSeeShiftCounts) p.shiftCounts = true;
+  return p;
+}
+function permBadgesHtml(perms){
+  return PERM_KEYS.filter(k => perms[k]).map(k => `<span class="tag tag-${k}">${PERM_LABELS[k]}</span>`).join('') || '<span class="tag tag-inactive">No access</span>';
 }
 
 /* ---------------- AUTH ---------------- */
 document.getElementById('loginBtn').onclick = doLogin;
 document.getElementById('loginPassword').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('toggleLoginPw').onclick = () => {
+  const inp = document.getElementById('loginPassword');
+  const btn = document.getElementById('toggleLoginPw');
+  if(inp.type === 'password'){ inp.type = 'text'; btn.textContent = '🙈'; }
+  else { inp.type = 'password'; btn.textContent = '👁️'; }
+};
 
 function doLogin(){
   const email = document.getElementById('loginEmail').value.trim();
@@ -572,11 +728,12 @@ auth.onAuthStateChanged(async (user) => {
   currentUser = user;
   const doc = await db.collection('users').doc(user.uid).get();
   if(!doc.exists){
-    alert('Your account has no role assigned yet. Ask your admin to set it up.');
+    alert('Your account has no permissions assigned yet. Ask your admin to set it up.');
     auth.signOut();
     return;
   }
   currentProfile = doc.data();
+  currentProfile.permissions = getPerms(currentProfile);
   if(currentProfile.active === false){
     alert('Your account has been deactivated. Contact your admin.');
     auth.signOut();
@@ -585,7 +742,7 @@ auth.onAuthStateChanged(async (user) => {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('whoName').textContent = currentProfile.name || currentProfile.email;
-  document.getElementById('whoRole').textContent = currentProfile.role;
+  document.getElementById('whoRoles').innerHTML = permBadgesHtml(currentProfile.permissions);
   buildTabs();
   loadShiftTemplates();
   loadStaffList();
@@ -594,11 +751,12 @@ auth.onAuthStateChanged(async (user) => {
 
 /* ---------------- TABS ---------------- */
 function buildTabs(){
-  const role = currentProfile.role;
+  const p = currentProfile.permissions;
   const tabs = [{ id:'calendar', label:'Calendar' }];
-  if(role === 'doctor') tabs.push({ id:'myschedule', label:'My schedule' });
-  if(role === 'admin') tabs.push({ id:'staff', label:'Staff' }, { id:'templates', label:'Shift templates' });
-  if(role === 'admin' || currentProfile.canSeeShiftCounts) tabs.push({ id:'counts', label:'Shift counts' });
+  if(p.schedule) tabs.push({ id:'myschedule', label:'My schedule' });
+  if(p.checkin || p.supervision) tabs.push({ id:'checklist', label:'Checklist' });
+  if(p.admin) tabs.push({ id:'staff', label:'Staff' }, { id:'templates', label:'Shift templates' });
+  if(p.admin || p.shiftCounts) tabs.push({ id:'counts', label:'Shift counts' });
   const nav = document.getElementById('tabsNav');
   nav.innerHTML = '';
   tabs.forEach(t => {
@@ -608,24 +766,26 @@ function buildTabs(){
     b.onclick = () => switchTab(t.id);
     nav.appendChild(b);
   });
-  document.getElementById('openAddShiftModal').style.display = role === 'admin' ? 'inline-flex' : 'none';
-  document.getElementById('openAddApptModal').style.display = (role === 'admin' || role === 'receptionist') ? 'inline-flex' : 'none';
+  document.getElementById('openAddShiftModal').style.display = p.admin ? 'inline-flex' : 'none';
+  document.getElementById('openAddApptModal').style.display = (p.admin || p.receptionist) ? 'inline-flex' : 'none';
 }
 
 function switchTab(id){
   currentTab = id;
   document.querySelectorAll('.tabpanel').forEach(p => p.style.display = 'none');
-  document.getElementById('tab-' + id).style.display = 'block';
+  const panel = document.getElementById('tab-' + id);
+  if(panel) panel.style.display = 'block';
   document.querySelectorAll('#tabsNav button').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
   if(id === 'calendar'){ renderTwoWeekStrip(); loadCalendarDay(); }
   if(id === 'myschedule'){ myScheduleMonth = todayStr().slice(0, 7); loadMySchedule(); }
   if(id === 'staff') loadStaffList();
   if(id === 'templates') loadTemplatesTab();
   if(id === 'counts'){ countsMonth = todayStr().slice(0, 7); loadShiftCounts(); }
+  if(id === 'checklist'){ renderClinicSubtabs(); loadChecklistTab(); }
 }
 
 function cleanupListeners(){
-  [unsubDoctors, unsubAppts, unsubTemplates, unsubStaff, unsubMySchedule, unsubRangeShifts, unsubRangeAppts, unsubCounts].forEach(u => { if(u) u(); });
+  [unsubDoctors, unsubAppts, unsubTemplates, unsubStaff, unsubMySchedule, unsubRangeShifts, unsubRangeAppts, unsubCounts, unsubItems, unsubChecklistDay, unsubFeed].forEach(u => { if(u) u(); });
 }
 
 /* ---------------- SHIFT TEMPLATES ---------------- */
@@ -729,7 +889,7 @@ let rangeShiftsByDate = {}, rangeApptsByDate = {};
 
 function twoWeekWindow(){
   const base = new Date(selectedDate + 'T00:00:00');
-  const startOffset = base.getDay() === 0 ? -6 : 1 - base.getDay(); // window starts on the Monday of selected date's week
+  const startOffset = base.getDay() === 0 ? -6 : 1 - base.getDay();
   const start = new Date(base);
   start.setDate(base.getDate() + startOffset);
   const dates = [];
@@ -828,8 +988,8 @@ function permissionErrorHtml(err){
   return `<div class="empty-state">Couldn't load data (${escapeHtml(err.message)}). Check your Firestore security rules.</div>`;
 }
 
-/* ---------------- SHIFT COUNTS (admin + granted staff) ---------------- */
-let countsMonth = todayStr().slice(0, 7); // 'YYYY-MM'
+/* ---------------- SHIFT COUNTS ---------------- */
+let countsMonth = todayStr().slice(0, 7);
 
 document.getElementById('countsPrevMonth').onclick = () => shiftCountsMonth(-1);
 document.getElementById('countsNextMonth').onclick = () => shiftCountsMonth(1);
@@ -869,7 +1029,7 @@ function loadShiftCounts(){
 
 function renderShiftCounts(rows){
   const el = document.getElementById('countsList');
-  const byDoctor = {}; // doctorId -> { name, count }
+  const byDoctor = {};
 
   rows.forEach(r => {
     if(!r.date || !r.doctorId) return;
@@ -903,7 +1063,7 @@ function renderDoctorsList(rows){
   el.innerHTML = rows.map(r => {
     const tmpl = shiftTemplates.find(t => t.id === r.shiftTemplateId);
     const color = tmpl ? tmpl.color : 'var(--teal-500)';
-    const canManage = currentProfile.role === 'admin' || (currentProfile.role === 'doctor' && r.doctorId === currentUser.uid);
+    const canManage = currentProfile.permissions.admin || (currentProfile.permissions.schedule && r.doctorId === currentUser.uid);
     return `
     <div class="shift-row">
       <div class="colorbar" style="background:${color}"></div>
@@ -927,7 +1087,7 @@ function renderApptsList(rows){
     el.innerHTML = '<div class="empty-state">No appointments booked for this day yet.</div>';
     return;
   }
-  const canManage = currentProfile.role === 'admin' || currentProfile.role === 'receptionist';
+  const canManage = currentProfile.permissions.admin || currentProfile.permissions.receptionist;
   el.innerHTML = rows.map(r => `
     <div class="appt-row">
       <div class="colorbar" style="background:var(--coral)"></div>
@@ -959,7 +1119,7 @@ document.getElementById('openAddApptModal').onclick = () => {
 
 function fillDoctorOptions(selectId){
   const sel = document.getElementById(selectId);
-  const doctors = allStaff.filter(s => s.role === 'doctor' && s.active !== false);
+  const doctors = allStaff.filter(s => s.permissions && s.permissions.schedule && s.active !== false);
   sel.innerHTML = doctors.map(d => `<option value="${d.id}" data-name="${escapeHtml(d.name)}">${escapeHtml(d.name)}</option>`).join('') || '<option value="">No doctors yet</option>';
 }
 
@@ -1015,8 +1175,8 @@ document.getElementById('saveShiftBtn').onclick = async () => {
   }catch(err){ msg.textContent = err.message; msg.className='msg err'; }
 };
 
-/* ---------------- MY SCHEDULE (doctor, month view) ---------------- */
-let myScheduleMonth = todayStr().slice(0, 7); // 'YYYY-MM'
+/* ---------------- MY SCHEDULE (month view) ---------------- */
+let myScheduleMonth = todayStr().slice(0, 7);
 
 document.getElementById('mySchedPrevMonth').onclick = () => shiftMyScheduleMonth(-1);
 document.getElementById('mySchedNextMonth').onclick = () => shiftMyScheduleMonth(1);
@@ -1074,7 +1234,6 @@ function renderMySchedule(dates, existing){
     </div>`;
   }).join('');
 
-  // set selected values after render
   dates.forEach(ds => {
     const sel = el.querySelector(`.schedule-item[data-date="${ds}"] select`);
     if(sel && existing[ds]) sel.value = existing[ds].shiftTemplateId;
@@ -1103,7 +1262,10 @@ async function saveMyShift(date, selectEl){
 function loadStaffList(){
   if(unsubStaff) unsubStaff();
   unsubStaff = db.collection('users').onSnapshot(snap => {
-    allStaff = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    allStaff = snap.docs.map(d => {
+      const data = d.data();
+      return { id:d.id, ...data, permissions: getPerms(data) };
+    });
     if(currentTab === 'staff') renderStaffList();
   });
 }
@@ -1111,25 +1273,19 @@ function loadStaffList(){
 function renderStaffList(){
   const el = document.getElementById('staffList');
   if(allStaff.length === 0){ el.innerHTML = '<div class="empty-state">No staff accounts yet.</div>'; return; }
-  const sorted = [...allStaff].sort((a,b) => (a.role||'').localeCompare(b.role||'') || (a.name||'').localeCompare(b.name||''));
-  el.innerHTML = `<table class="datatable"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Shift counts</th><th></th></tr></thead><tbody>
+  const sorted = [...allStaff].sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  el.innerHTML = `<table class="datatable"><thead><tr><th>Name</th><th>Email</th><th>Permissions</th><th>Status</th><th></th></tr></thead><tbody>
     ${sorted.map(s => `
       <tr>
         <td>${escapeHtml(s.name || '—')}</td>
         <td>${escapeHtml(s.email || '—')}</td>
-        <td><span class="tag tag-${s.role}">${escapeHtml(s.role)}</span></td>
-        <td>${s.active === false ? '<span class="tag tag-inactive">Inactive</span>' : 'Active'}</td>
-        <td style="text-align:center;">
-          ${s.role === 'admin'
-            ? '<span class="hint" style="font-size:11px;">Always</span>'
-            : `<input type="checkbox" onchange="toggleCountsAccess('${s.id}', this.checked)" ${s.canSeeShiftCounts ? 'checked' : ''}>`}
+        <td>
+          <div class="perm-check-cell">
+            ${PERM_KEYS.map(k => `<label><input type="checkbox" onchange="togglePermission('${s.id}','${k}', this.checked)" ${s.permissions[k] ? 'checked' : ''}> ${PERM_LABELS[k]}</label>`).join('')}
+          </div>
         </td>
+        <td>${s.active === false ? '<span class="tag tag-inactive">Inactive</span>' : 'Active'}</td>
         <td style="white-space:nowrap;">
-          <select onchange="changeRole('${s.id}', this.value)" style="padding:4px 6px;border-radius:5px;border:1px solid var(--line);font-size:12px;">
-            <option value="doctor" ${s.role==='doctor'?'selected':''}>Doctor</option>
-            <option value="receptionist" ${s.role==='receptionist'?'selected':''}>Receptionist</option>
-            <option value="admin" ${s.role==='admin'?'selected':''}>Admin</option>
-          </select>
           <button class="btn btn-ghost btn-sm" onclick="toggleActive('${s.id}', ${s.active === false})">${s.active === false ? 'Reactivate' : 'Deactivate'}</button>
           <button class="btn btn-ghost btn-sm" onclick="resetPassword('${escapeHtml(s.email)}')">Reset PW</button>
         </td>
@@ -1138,23 +1294,20 @@ function renderStaffList(){
   </tbody></table>`;
 }
 
-function changeRole(uid, role){
-  if(uid === currentUser.uid && role !== 'admin'){
-    if(!confirm('You are changing your own role and may lose admin access. Continue?')) { renderStaffList(); return; }
+function togglePermission(uid, key, checked){
+  if(uid === currentUser.uid && key === 'admin' && !checked){
+    if(!confirm('You are removing your own admin access. Continue?')) { renderStaffList(); return; }
   }
-  db.collection('users').doc(uid).update({ role });
+  db.collection('users').doc(uid).update({ [`permissions.${key}`]: checked });
+  if(uid === currentUser.uid){
+    currentProfile.permissions[key] = checked;
+    document.getElementById('whoRoles').innerHTML = permBadgesHtml(currentProfile.permissions);
+    buildTabs();
+  }
 }
 
 function toggleActive(uid, makeActive){
   db.collection('users').doc(uid).update({ active: makeActive });
-}
-
-function toggleCountsAccess(uid, allowed){
-  db.collection('users').doc(uid).update({ canSeeShiftCounts: allowed });
-  if(uid === currentUser.uid){
-    currentProfile.canSeeShiftCounts = allowed;
-    buildTabs();
-  }
 }
 
 function resetPassword(email){
@@ -1169,7 +1322,7 @@ document.getElementById('openAddStaffModal').onclick = () => {
   document.getElementById('staffName').value = '';
   document.getElementById('staffEmail').value = '';
   document.getElementById('staffPassword').value = '';
-  document.getElementById('staffRole').value = 'doctor';
+  ['permAdmin','permSchedule','permCheckin','permReceptionist','permShiftCounts','permSupervision'].forEach(id => document.getElementById(id).checked = false);
   document.getElementById('staffMsg').textContent = '';
   openModal('modalAddStaff');
 };
@@ -1178,7 +1331,14 @@ document.getElementById('saveStaffBtn').onclick = async () => {
   const name = document.getElementById('staffName').value.trim();
   const email = document.getElementById('staffEmail').value.trim();
   const password = document.getElementById('staffPassword').value;
-  const role = document.getElementById('staffRole').value;
+  const permissions = {
+    admin: document.getElementById('permAdmin').checked,
+    schedule: document.getElementById('permSchedule').checked,
+    checkin: document.getElementById('permCheckin').checked,
+    receptionist: document.getElementById('permReceptionist').checked,
+    shiftCounts: document.getElementById('permShiftCounts').checked,
+    supervision: document.getElementById('permSupervision').checked
+  };
   const msg = document.getElementById('staffMsg');
   if(!name || !email || password.length < 6){ msg.textContent = 'Fill all fields — password needs 6+ characters.'; msg.className='msg err'; return; }
   const btn = document.getElementById('saveStaffBtn');
@@ -1186,7 +1346,7 @@ document.getElementById('saveStaffBtn').onclick = async () => {
   try{
     const cred = await secondaryAuth.createUserWithEmailAndPassword(email, password);
     await db.collection('users').doc(cred.user.uid).set({
-      name, email, role, active: true, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      name, email, permissions, active: true, createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     await secondaryAuth.signOut();
     msg.textContent = 'Account created. Share the email + password with them.';
@@ -1220,6 +1380,202 @@ document.getElementById('savePwBtn').onclick = async () => {
     msg.className='msg err';
   }
 };
+
+/* =========================================================================
+   CHECKLIST TAB
+   ========================================================================= */
+let checklistSelectedDate = todayStr();
+
+function renderClinicSubtabs(){
+  const nav = document.getElementById('clinicSubtabs');
+  nav.innerHTML = CLINICS.map(c => `<button class="${c.key===activeClinic?'active':''}" data-clinic="${c.key}">${c.label}</button>`).join('');
+  nav.querySelectorAll('button').forEach(btn => {
+    btn.onclick = () => { activeClinic = btn.dataset.clinic; renderClinicSubtabs(); loadChecklistTab(); };
+  });
+}
+
+function loadChecklistTab(){
+  const p = currentProfile.permissions;
+  document.getElementById('itemsMgmtPanel').style.display = p.supervision ? 'block' : 'none';
+  document.getElementById('notificationsPanel').style.display = p.supervision ? 'block' : 'none';
+  document.getElementById('itemsMgmtHeading').textContent = `Items — ${clinicLabel(activeClinic)}`;
+  document.getElementById('checklistHeading').textContent = `Checklist — ${clinicLabel(activeClinic)}`;
+  document.getElementById('checklistDate').value = checklistSelectedDate;
+
+  if(unsubItems) unsubItems();
+  unsubItems = db.collection('items').where('clinic','==',activeClinic).onSnapshot(snap => {
+    clinicItems = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    if(p.supervision) renderItemsMgmt();
+    renderChecklistItems();
+  }, err => { document.getElementById('checklistItems').innerHTML = permissionErrorHtml(err); });
+
+  loadChecklistDayCheckins();
+
+  if(p.supervision){
+    if(unsubFeed) unsubFeed();
+    unsubFeed = db.collection('checkins').orderBy('timestamp','desc').limit(50).onSnapshot(snap => {
+      checkinsFeed = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      renderNotificationsFeed();
+    });
+  }
+}
+
+function clinicLabel(key){ return (CLINICS.find(c=>c.key===key)||{}).label || key; }
+
+document.getElementById('checklistDate').onchange = (e) => {
+  checklistSelectedDate = e.target.value;
+  loadChecklistDayCheckins();
+};
+document.getElementById('checklistToday').onclick = () => {
+  checklistSelectedDate = todayStr();
+  document.getElementById('checklistDate').value = checklistSelectedDate;
+  loadChecklistDayCheckins();
+};
+
+function loadChecklistDayCheckins(){
+  if(unsubChecklistDay) unsubChecklistDay();
+  unsubChecklistDay = db.collection('checkins')
+    .where('clinic','==',activeClinic).where('date','==',checklistSelectedDate)
+    .onSnapshot(snap => {
+      checklistDayCheckins = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      renderChecklistItems();
+    }, err => { document.getElementById('checklistItems').innerHTML = permissionErrorHtml(err); });
+}
+
+function findDayCheckin(itemId){
+  return checklistDayCheckins.find(c => c.itemId === itemId);
+}
+
+function renderItemsMgmt(){
+  const el = document.getElementById('itemsMgmtList');
+  if(clinicItems.length === 0){ el.innerHTML = '<div class="empty-state">No items yet for this clinic.</div>'; return; }
+  el.innerHTML = clinicItems.map(it => `
+    <div class="item-row">
+      <div class="rowmain">
+        <div class="item-name">${escapeHtml(it.name)}</div>
+        <div class="item-meta">min ${it.minCount} ${UNIT_LABELS[it.unit]}${it.minCount>1?'s':''}</div>
+      </div>
+      <div class="rowactions">
+        <button class="btn btn-ghost btn-sm" onclick="openEditItem('${it.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteChecklistItem('${it.id}')">Remove</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('addItemBtn').onclick = async () => {
+  const name = document.getElementById('newItemName').value.trim();
+  const unit = document.getElementById('newItemUnit').value;
+  const min = Number(document.getElementById('newItemMin').value) || 1;
+  if(!name) return;
+  await db.collection('items').add({ clinic: activeClinic, name, unit, minCount: min });
+  document.getElementById('newItemName').value = '';
+  document.getElementById('newItemMin').value = 1;
+};
+
+function deleteChecklistItem(id){
+  if(!confirm('Remove this item?')) return;
+  db.collection('items').doc(id).delete();
+}
+
+function openEditItem(id){
+  const it = clinicItems.find(i => i.id === id);
+  if(!it) return;
+  document.getElementById('editItemId').value = it.id;
+  document.getElementById('editItemName').value = it.name;
+  document.getElementById('editItemUnit').value = it.unit;
+  document.getElementById('editItemMin').value = it.minCount;
+  document.getElementById('editItemMsg').textContent = '';
+  openModal('modalEditItem');
+}
+
+document.getElementById('saveEditItemBtn').onclick = async () => {
+  const id = document.getElementById('editItemId').value;
+  const name = document.getElementById('editItemName').value.trim();
+  const unit = document.getElementById('editItemUnit').value;
+  const minCount = Number(document.getElementById('editItemMin').value) || 1;
+  const msg = document.getElementById('editItemMsg');
+  if(!name){ msg.textContent = 'Name is required.'; msg.className='msg err'; return; }
+  try{
+    await db.collection('items').doc(id).update({ name, unit, minCount });
+    closeModal('modalEditItem');
+  }catch(err){ msg.textContent = err.message; msg.className='msg err'; }
+};
+
+function renderChecklistItems(){
+  const el = document.getElementById('checklistItems');
+  const p = currentProfile.permissions;
+  const canCheck = p.checkin || p.supervision;
+  if(clinicItems.length === 0){ el.innerHTML = '<div class="empty-state">No items set up for this clinic yet.</div>'; return; }
+  el.innerHTML = clinicItems.map(it => {
+    const c = findDayCheckin(it.id);
+    const okActive = c && c.status === 'ok';
+    const xActive = c && c.status === 'missing';
+    return `
+    <div class="item-row">
+      <div class="rowmain">
+        <div class="item-name">${escapeHtml(it.name)}</div>
+        <div class="item-meta">min ${it.minCount} ${UNIT_LABELS[it.unit]}${it.minCount>1?'s':''}
+          ${xActive ? `<span class="missing-badge">needs ${c.missingCount} ${UNIT_LABELS[it.unit]}${c.missingCount>1?'s':''}</span>` : ''}
+          ${c ? ` · checked by ${escapeHtml(c.userName)}` : ''}
+        </div>
+      </div>
+      <div class="check-buttons">
+        <button class="cbtn ok ${okActive?'active':''}" ${canCheck?'':'disabled'} onclick="setChecklistOk('${it.id}')">✓</button>
+        <button class="cbtn x ${xActive?'active':''}" ${canCheck?'':'disabled'} onclick="openMissingModal('${it.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function setChecklistOk(itemId){
+  const it = clinicItems.find(i => i.id === itemId);
+  if(!it) return;
+  await db.collection('checkins').doc(`${itemId}_${checklistSelectedDate}`).set({
+    clinic: activeClinic, clinicLabel: clinicLabel(activeClinic),
+    itemId, itemName: it.name, unit: it.unit,
+    date: checklistSelectedDate, status: 'ok', missingCount: 0,
+    userId: currentUser.uid, userName: currentProfile.name,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+let missingModalItemId = null;
+function openMissingModal(itemId){
+  const it = clinicItems.find(i => i.id === itemId);
+  if(!it) return;
+  missingModalItemId = itemId;
+  document.getElementById('missingModalTitle').textContent = `How many ${UNIT_LABELS[it.unit]}s are missing?`;
+  document.getElementById('missingModalSub').textContent = `${it.name} — minimum is ${it.minCount} ${UNIT_LABELS[it.unit]}${it.minCount>1?'s':''}.`;
+  document.getElementById('missingCountInput').value = it.minCount;
+  document.getElementById('missingMsg').textContent = '';
+  openModal('modalMissingCount');
+}
+
+document.getElementById('confirmMissingBtn').onclick = async () => {
+  const it = clinicItems.find(i => i.id === missingModalItemId);
+  if(!it) return;
+  const val = Number(document.getElementById('missingCountInput').value) || it.minCount;
+  await db.collection('checkins').doc(`${it.id}_${checklistSelectedDate}`).set({
+    clinic: activeClinic, clinicLabel: clinicLabel(activeClinic),
+    itemId: it.id, itemName: it.name, unit: it.unit,
+    date: checklistSelectedDate, status: 'missing', missingCount: val,
+    userId: currentUser.uid, userName: currentProfile.name,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  closeModal('modalMissingCount');
+};
+
+function renderNotificationsFeed(){
+  const el = document.getElementById('notificationsFeed');
+  if(checkinsFeed.length === 0){ el.innerHTML = '<div class="empty-state">No check-ins yet.</div>'; return; }
+  el.innerHTML = checkinsFeed.map(c => `
+    <div class="feed-item ${c.status==='missing'?'missing':''}">
+      <div class="feed-top"><span>${escapeHtml(c.itemName)}</span><span>${c.status==='missing' ? `needs ${c.missingCount} ${UNIT_LABELS[c.unit]}${c.missingCount>1?'s':''}` : 'checked ✓'}</span></div>
+      <div class="feed-sub">${escapeHtml(c.clinicLabel)} · ${escapeHtml(c.userName)} · ${fmtDateHuman(c.date)}</div>
+    </div>
+  `).join('');
+}
 
 /* ---------------- MODAL HELPERS ---------------- */
 function openModal(id){ document.getElementById(id).classList.add('show'); }
