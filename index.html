@@ -201,6 +201,7 @@
   .tag-receptionist{background:#E8F1E9;color:#2F7A45;}
   .tag-checkin{background:#FCEFE2;color:#B36A18;}
   .tag-shiftCounts{background:#EAF3EF;color:#1C7A8C;}
+  .tag-adminItems{background:#F5E9D6;color:#8A5A12;}
   .tag-supervision{background:#FBE4E0;color:#B94A34;}
   .tag-inactive{background:#F1E4E1;color:#A65038;}
   .perm-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 14px;}
@@ -462,6 +463,7 @@
         <label><input type="checkbox" id="permCheckin"> Check items</label>
         <label><input type="checkbox" id="permReceptionist"> Receptionist</label>
         <label><input type="checkbox" id="permShiftCounts"> See shift counts</label>
+        <label><input type="checkbox" id="permAdminItems"> Admin items</label>
         <label><input type="checkbox" id="permSupervision"> Supervision</label>
       </div>
     </div>
@@ -615,8 +617,8 @@ const CLINICS = [
   {key:'float', label:'Float'}
 ];
 const UNIT_LABELS = {box:'box', bag:'bag', bottle:'bottle', tube:'tube', normal:'unit'};
-const PERM_KEYS = ['admin','schedule','checkin','receptionist','shiftCounts','supervision'];
-const PERM_LABELS = {admin:'Admin', schedule:'Schedule', checkin:'Check-in', receptionist:'Receptionist', shiftCounts:'Shift counts', supervision:'Supervision'};
+const PERM_KEYS = ['admin','schedule','checkin','receptionist','shiftCounts','adminItems','supervision'];
+const PERM_LABELS = {admin:'Admin', schedule:'Schedule', checkin:'Check-in', receptionist:'Receptionist', shiftCounts:'Shift counts', adminItems:'Admin items', supervision:'Supervision'};
 
 let currentUser = null;
 let currentProfile = null;
@@ -657,8 +659,9 @@ function escapeHtml(s){
 
 /* ---------------- PERMISSIONS ---------------- */
 function getPerms(profile){
-  if(profile.permissions) return Object.assign({admin:false,schedule:false,checkin:false,receptionist:false,shiftCounts:false,supervision:false}, profile.permissions);
-  const p = {admin:false,schedule:false,checkin:false,receptionist:false,shiftCounts:false,supervision:false};
+  const blank = {admin:false,schedule:false,checkin:false,receptionist:false,shiftCounts:false,adminItems:false,supervision:false};
+  if(profile.permissions) return Object.assign({}, blank, profile.permissions);
+  const p = Object.assign({}, blank);
   if(profile.role==='admin') p.admin = true;
   if(profile.role==='doctor') p.schedule = true;
   if(profile.role==='receptionist') p.receptionist = true;
@@ -754,7 +757,7 @@ function buildTabs(){
   const p = currentProfile.permissions;
   const tabs = [{ id:'calendar', label:'Calendar' }];
   if(p.schedule) tabs.push({ id:'myschedule', label:'My schedule' });
-  if(p.checkin || p.supervision) tabs.push({ id:'checklist', label:'Checklist' });
+  if(p.checkin || p.adminItems || p.supervision) tabs.push({ id:'checklist', label:'Checklist' });
   if(p.admin) tabs.push({ id:'staff', label:'Staff' }, { id:'templates', label:'Shift templates' });
   if(p.admin || p.shiftCounts) tabs.push({ id:'counts', label:'Shift counts' });
   const nav = document.getElementById('tabsNav');
@@ -1322,7 +1325,7 @@ document.getElementById('openAddStaffModal').onclick = () => {
   document.getElementById('staffName').value = '';
   document.getElementById('staffEmail').value = '';
   document.getElementById('staffPassword').value = '';
-  ['permAdmin','permSchedule','permCheckin','permReceptionist','permShiftCounts','permSupervision'].forEach(id => document.getElementById(id).checked = false);
+  ['permAdmin','permSchedule','permCheckin','permReceptionist','permShiftCounts','permAdminItems','permSupervision'].forEach(id => document.getElementById(id).checked = false);
   document.getElementById('staffMsg').textContent = '';
   openModal('modalAddStaff');
 };
@@ -1337,6 +1340,7 @@ document.getElementById('saveStaffBtn').onclick = async () => {
     checkin: document.getElementById('permCheckin').checked,
     receptionist: document.getElementById('permReceptionist').checked,
     shiftCounts: document.getElementById('permShiftCounts').checked,
+    adminItems: document.getElementById('permAdminItems').checked,
     supervision: document.getElementById('permSupervision').checked
   };
   const msg = document.getElementById('staffMsg');
@@ -1396,7 +1400,7 @@ function renderClinicSubtabs(){
 
 function loadChecklistTab(){
   const p = currentProfile.permissions;
-  document.getElementById('itemsMgmtPanel').style.display = p.supervision ? 'block' : 'none';
+  document.getElementById('itemsMgmtPanel').style.display = p.adminItems ? 'block' : 'none';
   document.getElementById('notificationsPanel').style.display = p.supervision ? 'block' : 'none';
   document.getElementById('itemsMgmtHeading').textContent = `Items — ${clinicLabel(activeClinic)}`;
   document.getElementById('checklistHeading').textContent = `Checklist — ${clinicLabel(activeClinic)}`;
@@ -1405,7 +1409,7 @@ function loadChecklistTab(){
   if(unsubItems) unsubItems();
   unsubItems = db.collection('items').where('clinic','==',activeClinic).onSnapshot(snap => {
     clinicItems = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-    if(p.supervision) renderItemsMgmt();
+    if(p.adminItems) renderItemsMgmt();
     renderChecklistItems();
   }, err => { document.getElementById('checklistItems').innerHTML = permissionErrorHtml(err); });
 
@@ -1505,7 +1509,7 @@ document.getElementById('saveEditItemBtn').onclick = async () => {
 function renderChecklistItems(){
   const el = document.getElementById('checklistItems');
   const p = currentProfile.permissions;
-  const canCheck = p.checkin || p.supervision;
+  const canCheck = p.checkin;
   if(clinicItems.length === 0){ el.innerHTML = '<div class="empty-state">No items set up for this clinic yet.</div>'; return; }
   el.innerHTML = clinicItems.map(it => {
     const c = findDayCheckin(it.id);
