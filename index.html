@@ -1331,15 +1331,29 @@ function deleteStaffPermanently(uid){
 }
 
 function togglePermission(uid, key, checked){
-  if(uid === currentUser.uid && key === 'admin' && !checked){
-    if(!confirm('You are removing your own admin access. Continue?')) { renderStaffList(); return; }
+  if(key === 'admin' && !checked){
+    const otherAdmins = allStaff.filter(s => s.id !== uid && s.permissions.admin && s.active !== false).length;
+    if(otherAdmins === 0){
+      alert("You can't remove Admin here — this is the last admin account. Keep at least one admin so no one gets locked out of the Staff page.");
+      renderStaffList();
+      return;
+    }
+    if(uid === currentUser.uid){
+      if(!confirm('You are removing your own admin access. Continue?')) { renderStaffList(); return; }
+    }
   }
-  db.collection('users').doc(uid).update({ [`permissions.${key}`]: checked });
-  if(uid === currentUser.uid){
-    currentProfile.permissions[key] = checked;
-    document.getElementById('whoRoles').innerHTML = permBadgesHtml(currentProfile.permissions);
-    buildTabs();
-  }
+  db.collection('users').doc(uid).update({ [`permissions.${key}`]: checked })
+    .then(() => {
+      if(uid === currentUser.uid){
+        currentProfile.permissions[key] = checked;
+        document.getElementById('whoRoles').innerHTML = permBadgesHtml(currentProfile.permissions);
+        buildTabs();
+      }
+    })
+    .catch(err => {
+      alert('Could not update permission: ' + err.message + '\n\nThis almost always means either (1) your Firestore security rules haven\'t been published yet, or (2) your own account\'s "admin" value isn\'t actually saved as true inside the "permissions" map field in Firestore. Check both in Firebase console.');
+      renderStaffList();
+    });
 }
 
 function toggleActive(uid, makeActive){
