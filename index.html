@@ -234,6 +234,12 @@
   .feed-item.missing{border-left-color:var(--coral);}
   .feed-top{display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:700;color:var(--teal-900);}
   .feed-sub{font-size:11.5px;color:var(--ink-soft);margin-top:3px;}
+  .notif-tab{padding:8px 14px;border-radius:8px;border:1.5px solid var(--line);background:white;color:var(--teal-900);font-weight:700;font-size:13px;cursor:pointer;}
+  .notif-tab.active{background:var(--teal-700);color:white;border-color:var(--teal-700);}
+  .notif-tab.missing-tab.active{background:var(--coral);border-color:var(--coral);}
+  #urgentBar{display:none;flex-wrap:wrap;gap:8px;padding:10px 20px;background:#FCEFE2;border-bottom:1px solid var(--line);}
+  .urgent-bubble{display:inline-flex;align-items:center;gap:6px;background:var(--coral);color:#fff;padding:6px 12px;border-radius:20px;font-size:12.5px;font-weight:700;cursor:pointer;border:none;}
+  .urgent-bubble:hover{background:var(--coral-dark);}
 
   /* ---------- Modal ---------- */
   .modal-backdrop{
@@ -311,6 +317,7 @@
   </header>
 
   <nav class="tabs" id="tabsNav"></nav>
+  <div id="urgentBar"></div>
 
   <main id="mainArea">
     <!-- ===== CALENDAR TAB ===== -->
@@ -369,39 +376,51 @@
       <div class="panel" id="itemsMgmtPanel" style="display:none;">
         <div class="panel-head">
           <h2 id="itemsMgmtHeading">Items</h2>
-          <button class="btn btn-ghost btn-sm" id="importDefaultItemsBtn">Import default item list (all clinics)</button>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-ghost btn-sm" id="importDefaultItemsBtn">Import default item list (all clinics)</button>
+            <button class="btn btn-ghost btn-sm" id="toggleItemsMgmtBtn" title="Show/hide items">▾</button>
+          </div>
         </div>
         <div class="msg" id="importItemsMsg"></div>
-        <div class="day-row" style="margin-bottom:14px;">
-          <input id="newItemName" placeholder="Item name" style="flex:2;min-width:140px;padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;">
-          <select id="newItemUnit" style="padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;">
-            <option value="box">box</option>
-            <option value="bag">bag</option>
-            <option value="bottle">bottle</option>
-            <option value="tube">tube</option>
-            <option value="normal">normal</option>
-          </select>
-          <input id="newItemMin" type="number" min="1" value="1" style="width:80px;padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;">
-          <button class="btn btn-primary btn-sm" id="addItemBtn">+ Add item</button>
+        <div id="itemsMgmtBody">
+          <div class="day-row" style="margin-bottom:14px;">
+            <input id="newItemName" placeholder="Item name" style="flex:2;min-width:140px;padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;">
+            <select id="newItemUnit" style="padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;">
+              <option value="box">box</option>
+              <option value="bag">bag</option>
+              <option value="bottle">bottle</option>
+              <option value="tube">tube</option>
+              <option value="normal">normal</option>
+            </select>
+            <input id="newItemMin" type="number" min="1" value="1" style="width:80px;padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;">
+            <button class="btn btn-primary btn-sm" id="addItemBtn">+ Add item</button>
+          </div>
+          <div id="itemsMgmtList"></div>
         </div>
-        <div id="itemsMgmtList"></div>
       </div>
 
       <div class="panel">
         <div class="panel-head">
           <h2 id="checklistHeading">Checklist</h2>
+          <button class="btn btn-ghost btn-sm" id="toggleChecklistBtn" title="Show/hide items">▾</button>
         </div>
-        <div class="day-row">
-          <input type="date" id="checklistDate">
-          <button class="btn btn-ghost btn-sm" id="checklistToday">Today</button>
+        <div id="checklistBody">
+          <div class="day-row">
+            <input type="date" id="checklistDate">
+            <button class="btn btn-ghost btn-sm" id="checklistToday">Today</button>
+          </div>
+          <div id="checklistItems"></div>
         </div>
-        <div id="checklistItems"></div>
       </div>
 
       <div class="panel" id="notificationsPanel" style="display:none;">
         <div class="panel-head">
-          <h2>Notifications</h2>
+          <h2>Notifications — <span id="notifClinicLabel"></span></h2>
           <span class="hint">Live — who checked what, and when</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+          <button class="notif-tab missing-tab" id="notifMissingBtn">Missing</button>
+          <button class="notif-tab" id="notifCheckedBtn">Checked</button>
         </div>
         <div id="notificationsFeed"></div>
       </div>
@@ -629,11 +648,14 @@ let selectedDate = todayStr();
 let shiftTemplates = [];
 let allStaff = [];
 let unsubDoctors = null, unsubAppts = null, unsubTemplates = null, unsubStaff = null, unsubMySchedule = null, unsubCounts = null;
-let unsubItems = null, unsubChecklistDay = null, unsubFeed = null;
+let unsubItems = null, unsubChecklistDay = null, unsubFeed = null, unsubUrgent = null;
 let activeClinic = CLINICS[0].key;
 let clinicItems = [];
 let checklistDayCheckins = [];
 let checkinsFeed = [];
+let notifFilter = 'missing';
+let urgentCounts = {};
+let itemsMgmtCollapsed = false, checklistCollapsed = false;
 
 function todayStr(offsetDays = 0){
   const d = new Date();
@@ -647,6 +669,10 @@ function fmtDateHuman(dateStr){
 function fmtDateShort(dateStr){
   const d = new Date(dateStr + 'T00:00:00');
   return { dow: d.toLocaleDateString('en-GB',{weekday:'short'}), num: d.getDate() };
+}
+function fmtTime(ts){
+  if(!ts || typeof ts.toDate !== 'function') return 'just now';
+  return ts.toDate().toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', hour12:true });
 }
 function to12h(t){
   if(!t) return '';
@@ -699,11 +725,7 @@ function doLogin(){
 
 document.getElementById('forgotLink').onclick = (e) => {
   e.preventDefault();
-  const email = prompt('Enter your account email to receive a reset link:');
-  if(!email) return;
-  auth.sendPasswordResetEmail(email.trim())
-    .then(() => alert('If that email has an account, a reset link has been sent.'))
-    .catch(err => alert(friendlyAuthError(err)));
+  alert('For a password reset, please contact your admin and/or Bola directly.');
 };
 
 document.getElementById('logoutBtn').onclick = () => auth.signOut();
@@ -751,6 +773,7 @@ auth.onAuthStateChanged(async (user) => {
   buildTabs();
   loadShiftTemplates();
   loadStaffList();
+  maybeStartUrgentListener();
   switchTab('calendar');
 });
 
@@ -790,7 +813,43 @@ function switchTab(id){
 }
 
 function cleanupListeners(){
-  [unsubDoctors, unsubAppts, unsubTemplates, unsubStaff, unsubMySchedule, unsubRangeShifts, unsubRangeAppts, unsubCounts, unsubItems, unsubChecklistDay, unsubFeed].forEach(u => { if(u) u(); });
+  [unsubDoctors, unsubAppts, unsubTemplates, unsubStaff, unsubMySchedule, unsubRangeShifts, unsubRangeAppts, unsubCounts, unsubItems, unsubChecklistDay, unsubFeed, unsubUrgent].forEach(u => { if(u) u(); });
+}
+
+/* ---------------- URGENT MISSING BUBBLES ---------------- */
+function maybeStartUrgentListener(){
+  const p = currentProfile.permissions;
+  const qualifies = p.admin || p.adminItems || p.supervision || p.receptionist;
+  if(unsubUrgent) unsubUrgent();
+  if(!qualifies){ document.getElementById('urgentBar').style.display = 'none'; return; }
+  unsubUrgent = db.collection('checkins')
+    .where('date','==', todayStr())
+    .where('status','==','missing')
+    .onSnapshot(snap => {
+      urgentCounts = {};
+      snap.docs.forEach(d => {
+        const r = d.data();
+        urgentCounts[r.clinic] = (urgentCounts[r.clinic] || 0) + 1;
+      });
+      renderUrgentBar();
+    });
+}
+
+function renderUrgentBar(){
+  const el = document.getElementById('urgentBar');
+  const entries = Object.entries(urgentCounts).filter(([k,v]) => v > 0);
+  if(entries.length === 0){ el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.style.display = 'flex';
+  el.innerHTML = entries.map(([clinicKey, count]) => `
+    <button class="urgent-bubble" data-clinic="${clinicKey}">⚠ Urgent — ${escapeHtml(clinicLabel(clinicKey))}: ${count} missing</button>
+  `).join('');
+  el.querySelectorAll('.urgent-bubble').forEach(btn => {
+    btn.onclick = () => {
+      activeClinic = btn.dataset.clinic;
+      notifFilter = 'missing';
+      switchTab('checklist');
+    };
+  });
 }
 
 /* ---------------- SHIFT TEMPLATES ---------------- */
@@ -814,17 +873,22 @@ function renderTemplatesList(){
   }
   el.innerHTML = shiftTemplates.map(t => `
     <div class="shift-row">
-      <div class="colorbar" style="background:${t.color || 'var(--teal-500)'}"></div>
+      <div class="colorbar" style="background:${t.active === false ? '#9AA6A3' : (t.color || 'var(--teal-500)')}"></div>
       <div class="rowmain">
-        <div class="t1">${escapeHtml(t.label)}</div>
+        <div class="t1">${escapeHtml(t.label)} ${t.active === false ? '<span class="tag tag-inactive">Unavailable</span>' : ''}</div>
         <div class="t2">${to12h(t.start)} – ${to12h(t.end)}</div>
       </div>
       <div class="rowactions">
+        <button class="btn btn-ghost btn-sm" onclick="toggleTemplateActive('${t.id}', ${t.active === false})">${t.active === false ? 'Make available' : 'Make unavailable'}</button>
         <button class="btn btn-ghost btn-sm" onclick="editTemplate('${t.id}')">Edit</button>
         <button class="btn btn-danger btn-sm" onclick="deleteTemplate('${t.id}')">Delete</button>
       </div>
     </div>
   `).join('');
+}
+
+function toggleTemplateActive(id, makeActive){
+  db.collection('shiftTemplates').doc(id).update({ active: makeActive }).catch(err => alert('Could not update: ' + err.message));
 }
 
 document.getElementById('openAddTemplateModal').onclick = () => {
@@ -956,6 +1020,7 @@ function paintStripDots(dates){
     if(!dotsEl) return;
     const shifts = rangeShiftsByDate[ds] || [];
     dotsEl.innerHTML = shifts.slice(0,6).map(r => {
+      if(r.unavailable) return `<span style="background:#9AA6A3"></span>`;
       const tmpl = shiftTemplates.find(t => t.id === r.shiftTemplateId);
       return `<span style="background:${tmpl ? tmpl.color : 'var(--teal-500)'}"></span>`;
     }).join('');
@@ -1066,9 +1131,20 @@ function renderDoctorsList(rows){
     return;
   }
   el.innerHTML = rows.map(r => {
+    const canManage = currentProfile.permissions.admin || (currentProfile.permissions.schedule && r.doctorId === currentUser.uid);
+    if(r.unavailable){
+      return `
+      <div class="shift-row">
+        <div class="colorbar" style="background:#9AA6A3"></div>
+        <div class="rowmain">
+          <div class="t1">${escapeHtml(r.doctorName)}</div>
+          <div class="t2">Unavailable — not on shift</div>
+        </div>
+        ${canManage ? `<div class="rowactions"><button class="btn btn-danger btn-sm" onclick="removeDoctorShift('${r.id}')">Remove</button></div>` : ''}
+      </div>`;
+    }
     const tmpl = shiftTemplates.find(t => t.id === r.shiftTemplateId);
     const color = tmpl ? tmpl.color : 'var(--teal-500)';
-    const canManage = currentProfile.permissions.admin || (currentProfile.permissions.schedule && r.doctorId === currentUser.uid);
     return `
     <div class="shift-row">
       <div class="colorbar" style="background:${color}"></div>
@@ -1098,7 +1174,7 @@ function renderApptsList(rows){
       <div class="colorbar" style="background:var(--coral)"></div>
       <div class="rowmain">
         <div class="t1">${to12h(r.time)} — ${escapeHtml(r.patientName)}</div>
-        <div class="t2">Dr. ${escapeHtml(r.doctorName)}${r.notes ? ' · ' + escapeHtml(r.notes) : ''}</div>
+        <div class="t2">${r.doctorId ? 'Dr. ' + escapeHtml(r.doctorName) : escapeHtml(r.doctorName)}${r.notes ? ' · ' + escapeHtml(r.notes) : ''}</div>
       </div>
       ${canManage ? `<div class="rowactions"><button class="btn btn-danger btn-sm" onclick="deleteAppt('${r.id}')">Delete</button></div>` : ''}
     </div>
@@ -1111,21 +1187,33 @@ function deleteAppt(id){
 }
 
 /* ---- Add appointment modal ---- */
-document.getElementById('openAddApptModal').onclick = () => {
+document.getElementById('openAddApptModal').onclick = async () => {
   document.getElementById('apptId').value = '';
   document.getElementById('apptDate').value = selectedDate;
   document.getElementById('apptPatient').value = '';
   document.getElementById('apptTime').value = '';
   document.getElementById('apptNotes').value = '';
   document.getElementById('apptMsg').textContent = '';
-  fillDoctorOptions('apptDoctor');
+  await fillDoctorOptions('apptDoctor', selectedDate, { includeAny: true });
   openModal('modalAddAppt');
 };
 
-function fillDoctorOptions(selectId){
+async function fillDoctorOptions(selectId, date, opts){
+  opts = opts || {};
   const sel = document.getElementById(selectId);
-  const doctors = allStaff.filter(s => s.permissions && s.permissions.schedule && s.active !== false);
-  sel.innerHTML = doctors.map(d => `<option value="${d.id}" data-name="${escapeHtml(d.name)}">${escapeHtml(d.name)}</option>`).join('') || '<option value="">No doctors yet</option>';
+  let unavailableIds = new Set();
+  if(date){
+    try{
+      const snap = await db.collection('doctorShifts').where('date','==',date).where('unavailable','==',true).get();
+      snap.docs.forEach(d => unavailableIds.add(d.data().doctorId));
+    }catch(err){ /* if this fails, just show everyone rather than blocking the modal */ }
+  }
+  const doctors = allStaff.filter(s => s.permissions && s.permissions.schedule && s.active !== false && !unavailableIds.has(s.id));
+  let html = doctors.map(d => `<option value="${d.id}" data-name="${escapeHtml(d.name)}">${escapeHtml(d.name)}</option>`).join('');
+  if(opts.includeAny){
+    html = `<option value="__any__" data-name="Any available doctor">Any available doctor</option>` + html;
+  }
+  sel.innerHTML = html || '<option value="">No doctors available</option>';
 }
 
 document.getElementById('saveApptBtn').onclick = async () => {
@@ -1134,10 +1222,11 @@ document.getElementById('saveApptBtn').onclick = async () => {
   const time = document.getElementById('apptTime').value;
   const notes = document.getElementById('apptNotes').value.trim();
   const doctorSel = document.getElementById('apptDoctor');
-  const doctorId = doctorSel.value;
+  const isAny = doctorSel.value === '__any__';
+  const doctorId = isAny ? '' : doctorSel.value;
   const doctorName = doctorSel.selectedOptions[0] ? doctorSel.selectedOptions[0].dataset.name : '';
   const msg = document.getElementById('apptMsg');
-  if(!date || !patientName || !time || !doctorId){ msg.textContent = 'Fill in date, patient, doctor and time.'; msg.className='msg err'; return; }
+  if(!date || !patientName || !time || !doctorSel.value){ msg.textContent = 'Fill in date, patient, doctor and time.'; msg.className='msg err'; return; }
   try{
     await db.collection('appointments').add({
       date, patientName, time, notes, doctorId, doctorName,
@@ -1148,17 +1237,20 @@ document.getElementById('saveApptBtn').onclick = async () => {
 };
 
 /* ---- Add doctor-shift modal (admin override) ---- */
-document.getElementById('openAddShiftModal').onclick = () => {
+document.getElementById('openAddShiftModal').onclick = async () => {
   document.getElementById('shiftDate').value = selectedDate;
   document.getElementById('shiftMsg').textContent = '';
-  fillDoctorOptions('shiftDoctor');
+  await fillDoctorOptions('shiftDoctor', selectedDate);
   fillShiftTemplateOptions();
   openModal('modalAddShift');
 };
 
 function fillShiftTemplateOptions(){
   const sel = document.getElementById('shiftTemplate');
-  sel.innerHTML = shiftTemplates.map(t => `<option value="${t.id}">${escapeHtml(t.label)} (${to12h(t.start)}–${to12h(t.end)})</option>`).join('') || '<option value="">Add a shift type first</option>';
+  sel.innerHTML = shiftTemplates.map(t => t.active === false
+    ? `<option value="${t.id}" disabled>${escapeHtml(t.label)} (${to12h(t.start)}–${to12h(t.end)}) — unavailable</option>`
+    : `<option value="${t.id}">${escapeHtml(t.label)} (${to12h(t.start)}–${to12h(t.end)})</option>`
+  ).join('') || '<option value="">Add a shift type first</option>';
 }
 
 document.getElementById('saveShiftBtn').onclick = async () => {
@@ -1220,8 +1312,10 @@ function loadMySchedule(){
 
 function renderMySchedule(dates, existing){
   const el = document.getElementById('myScheduleList');
-  const options = ['<option value="">Not coming</option>'].concat(
-    shiftTemplates.map(t => `<option value="${t.id}">${escapeHtml(t.label)} (${to12h(t.start)}–${to12h(t.end)})</option>`)
+  const options = ['<option value="">Not coming</option>', '<option value="__unavailable__">Unavailable</option>'].concat(
+    shiftTemplates.map(t => t.active === false
+      ? `<option value="${t.id}" disabled>${escapeHtml(t.label)} (${to12h(t.start)}–${to12h(t.end)}) — unavailable</option>`
+      : `<option value="${t.id}">${escapeHtml(t.label)} (${to12h(t.start)}–${to12h(t.end)})</option>`)
   ).join('');
 
   el.innerHTML = dates.map(ds => {
@@ -1241,21 +1335,30 @@ function renderMySchedule(dates, existing){
 
   dates.forEach(ds => {
     const sel = el.querySelector(`.schedule-item[data-date="${ds}"] select`);
-    if(sel && existing[ds]) sel.value = existing[ds].shiftTemplateId;
+    if(sel && existing[ds]){
+      sel.value = existing[ds].unavailable ? '__unavailable__' : existing[ds].shiftTemplateId;
+    }
   });
 }
 
 async function saveMyShift(date, selectEl){
-  const templateId = selectEl.value;
+  const val = selectEl.value;
   const badge = document.getElementById('saved-' + date);
   try{
-    if(!templateId){
+    if(!val){
       await db.collection('doctorShifts').doc(`${currentUser.uid}_${date}`).delete().catch(()=>{});
+    } else if(val === '__unavailable__'){
+      await db.collection('doctorShifts').doc(`${currentUser.uid}_${date}`).set({
+        doctorId: currentUser.uid, doctorName: currentProfile.name, date,
+        unavailable: true, label: 'Unavailable', start: '', end: '',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
     } else {
-      const tmpl = shiftTemplates.find(t => t.id === templateId);
+      const tmpl = shiftTemplates.find(t => t.id === val);
       await db.collection('doctorShifts').doc(`${currentUser.uid}_${date}`).set({
         doctorId: currentUser.uid, doctorName: currentProfile.name, date,
         shiftTemplateId: tmpl.id, label: tmpl.label, start: tmpl.start, end: tmpl.end,
+        unavailable: false,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     }
@@ -1445,6 +1548,17 @@ function renderClinicSubtabs(){
   });
 }
 
+document.getElementById('toggleItemsMgmtBtn').onclick = () => {
+  itemsMgmtCollapsed = !itemsMgmtCollapsed;
+  document.getElementById('itemsMgmtBody').style.display = itemsMgmtCollapsed ? 'none' : 'block';
+  document.getElementById('toggleItemsMgmtBtn').textContent = itemsMgmtCollapsed ? '▸' : '▾';
+};
+document.getElementById('toggleChecklistBtn').onclick = () => {
+  checklistCollapsed = !checklistCollapsed;
+  document.getElementById('checklistBody').style.display = checklistCollapsed ? 'none' : 'block';
+  document.getElementById('toggleChecklistBtn').textContent = checklistCollapsed ? '▸' : '▾';
+};
+
 function loadChecklistTab(){
   const p = currentProfile.permissions;
   document.getElementById('itemsMgmtPanel').style.display = p.adminItems ? 'block' : 'none';
@@ -1463,13 +1577,33 @@ function loadChecklistTab(){
   loadChecklistDayCheckins();
 
   if(p.supervision){
+    document.getElementById('notifClinicLabel').textContent = clinicLabel(activeClinic);
+    updateNotifTabButtons();
     if(unsubFeed) unsubFeed();
-    unsubFeed = db.collection('checkins').orderBy('timestamp','desc').limit(50).onSnapshot(snap => {
-      checkinsFeed = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-      renderNotificationsFeed();
-    });
+    unsubFeed = db.collection('checkins')
+      .where('clinic','==',activeClinic)
+      .limit(150)
+      .onSnapshot(snap => {
+        checkinsFeed = snap.docs.map(d => ({ id:d.id, ...d.data() }))
+          .sort((a,b) => {
+            const ta = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : 0;
+            const tb = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : 0;
+            return tb - ta;
+          });
+        renderNotificationsFeed();
+      }, err => { document.getElementById('notificationsFeed').innerHTML = permissionErrorHtml(err); });
   }
 }
+
+function updateNotifTabButtons(){
+  const mb = document.getElementById('notifMissingBtn');
+  const cb = document.getElementById('notifCheckedBtn');
+  if(!mb || !cb) return;
+  mb.className = 'notif-tab missing-tab' + (notifFilter === 'missing' ? ' active' : '');
+  cb.className = 'notif-tab' + (notifFilter === 'checked' ? ' active' : '');
+}
+document.getElementById('notifMissingBtn').onclick = () => { notifFilter = 'missing'; updateNotifTabButtons(); renderNotificationsFeed(); };
+document.getElementById('notifCheckedBtn').onclick = () => { notifFilter = 'checked'; updateNotifTabButtons(); renderNotificationsFeed(); };
 
 function clinicLabel(key){ return (CLINICS.find(c=>c.key===key)||{}).label || key; }
 
@@ -1659,11 +1793,15 @@ document.getElementById('confirmMissingBtn').onclick = async () => {
 
 function renderNotificationsFeed(){
   const el = document.getElementById('notificationsFeed');
-  if(checkinsFeed.length === 0){ el.innerHTML = '<div class="empty-state">No check-ins yet.</div>'; return; }
-  el.innerHTML = checkinsFeed.map(c => `
+  const filtered = checkinsFeed.filter(c => notifFilter === 'missing' ? c.status === 'missing' : c.status === 'ok');
+  if(filtered.length === 0){
+    el.innerHTML = `<div class="empty-state">No ${notifFilter === 'missing' ? 'missing items' : 'checked items'} yet for ${escapeHtml(clinicLabel(activeClinic))}.</div>`;
+    return;
+  }
+  el.innerHTML = filtered.map(c => `
     <div class="feed-item ${c.status==='missing'?'missing':''}">
       <div class="feed-top"><span>${escapeHtml(c.itemName)}</span><span>${c.status==='missing' ? `needs ${c.missingCount} ${UNIT_LABELS[c.unit]}${c.missingCount>1?'s':''}` : 'checked ✓'}</span></div>
-      <div class="feed-sub">${escapeHtml(c.clinicLabel)} · ${escapeHtml(c.userName)} · ${fmtDateHuman(c.date)}</div>
+      <div class="feed-sub">${escapeHtml(c.userName)} · ${fmtDateHuman(c.date)} at ${fmtTime(c.timestamp)}</div>
     </div>
   `).join('');
 }
