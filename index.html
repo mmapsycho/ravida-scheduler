@@ -234,9 +234,6 @@
   .feed-item.missing{border-left-color:var(--coral);}
   .feed-top{display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:700;color:var(--teal-900);}
   .feed-sub{font-size:11.5px;color:var(--ink-soft);margin-top:3px;}
-  .notif-tab{padding:8px 14px;border-radius:8px;border:1.5px solid var(--line);background:white;color:var(--teal-900);font-weight:700;font-size:13px;cursor:pointer;}
-  .notif-tab.active{background:var(--teal-700);color:white;border-color:var(--teal-700);}
-  .notif-tab.missing-tab.active{background:var(--coral);border-color:var(--coral);}
 
   /* ---------- Modal ---------- */
   .modal-backdrop{
@@ -403,12 +400,8 @@
 
       <div class="panel" id="notificationsPanel" style="display:none;">
         <div class="panel-head">
-          <h2>Notifications — <span id="notifClinicLabel"></span></h2>
+          <h2>Notifications</h2>
           <span class="hint">Live — who checked what, and when</span>
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:14px;">
-          <button class="notif-tab missing-tab" id="notifMissingBtn">Missing</button>
-          <button class="notif-tab" id="notifCheckedBtn">Checked</button>
         </div>
         <div id="notificationsFeed"></div>
       </div>
@@ -641,7 +634,6 @@ let activeClinic = CLINICS[0].key;
 let clinicItems = [];
 let checklistDayCheckins = [];
 let checkinsFeed = [];
-let notifFilter = 'missing';
 
 function todayStr(offsetDays = 0){
   const d = new Date();
@@ -655,10 +647,6 @@ function fmtDateHuman(dateStr){
 function fmtDateShort(dateStr){
   const d = new Date(dateStr + 'T00:00:00');
   return { dow: d.toLocaleDateString('en-GB',{weekday:'short'}), num: d.getDate() };
-}
-function fmtTime(ts){
-  if(!ts || typeof ts.toDate !== 'function') return 'just now';
-  return ts.toDate().toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', hour12:true });
 }
 function to12h(t){
   if(!t) return '';
@@ -1475,29 +1463,13 @@ function loadChecklistTab(){
   loadChecklistDayCheckins();
 
   if(p.supervision){
-    document.getElementById('notifClinicLabel').textContent = clinicLabel(activeClinic);
-    updateNotifTabButtons();
     if(unsubFeed) unsubFeed();
-    unsubFeed = db.collection('checkins')
-      .where('clinic','==',activeClinic)
-      .orderBy('timestamp','desc')
-      .limit(100)
-      .onSnapshot(snap => {
-        checkinsFeed = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-        renderNotificationsFeed();
-      }, err => { document.getElementById('notificationsFeed').innerHTML = permissionErrorHtml(err); });
+    unsubFeed = db.collection('checkins').orderBy('timestamp','desc').limit(50).onSnapshot(snap => {
+      checkinsFeed = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      renderNotificationsFeed();
+    });
   }
 }
-
-function updateNotifTabButtons(){
-  const mb = document.getElementById('notifMissingBtn');
-  const cb = document.getElementById('notifCheckedBtn');
-  if(!mb || !cb) return;
-  mb.className = 'notif-tab missing-tab' + (notifFilter === 'missing' ? ' active' : '');
-  cb.className = 'notif-tab' + (notifFilter === 'checked' ? ' active' : '');
-}
-document.getElementById('notifMissingBtn').onclick = () => { notifFilter = 'missing'; updateNotifTabButtons(); renderNotificationsFeed(); };
-document.getElementById('notifCheckedBtn').onclick = () => { notifFilter = 'checked'; updateNotifTabButtons(); renderNotificationsFeed(); };
 
 function clinicLabel(key){ return (CLINICS.find(c=>c.key===key)||{}).label || key; }
 
@@ -1687,15 +1659,11 @@ document.getElementById('confirmMissingBtn').onclick = async () => {
 
 function renderNotificationsFeed(){
   const el = document.getElementById('notificationsFeed');
-  const filtered = checkinsFeed.filter(c => notifFilter === 'missing' ? c.status === 'missing' : c.status === 'ok');
-  if(filtered.length === 0){
-    el.innerHTML = `<div class="empty-state">No ${notifFilter === 'missing' ? 'missing items' : 'checked items'} yet for ${escapeHtml(clinicLabel(activeClinic))}.</div>`;
-    return;
-  }
-  el.innerHTML = filtered.map(c => `
+  if(checkinsFeed.length === 0){ el.innerHTML = '<div class="empty-state">No check-ins yet.</div>'; return; }
+  el.innerHTML = checkinsFeed.map(c => `
     <div class="feed-item ${c.status==='missing'?'missing':''}">
       <div class="feed-top"><span>${escapeHtml(c.itemName)}</span><span>${c.status==='missing' ? `needs ${c.missingCount} ${UNIT_LABELS[c.unit]}${c.missingCount>1?'s':''}` : 'checked ✓'}</span></div>
-      <div class="feed-sub">${escapeHtml(c.userName)} · ${fmtDateHuman(c.date)} at ${fmtTime(c.timestamp)}</div>
+      <div class="feed-sub">${escapeHtml(c.clinicLabel)} · ${escapeHtml(c.userName)} · ${fmtDateHuman(c.date)}</div>
     </div>
   `).join('');
 }
