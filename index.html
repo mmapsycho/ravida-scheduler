@@ -240,6 +240,8 @@
   #urgentBar{display:none;flex-wrap:wrap;gap:8px;padding:10px 20px;background:#FCEFE2;border-bottom:1px solid var(--line);}
   .urgent-bubble{display:inline-flex;align-items:center;gap:6px;background:var(--coral);color:#fff;padding:6px 12px;border-radius:20px;font-size:12.5px;font-weight:700;cursor:pointer;border:none;}
   .urgent-bubble:hover{background:var(--coral-dark);}
+  .restock-bubble{display:inline-flex;align-items:center;gap:6px;background:var(--amber);color:#3A2A05;padding:6px 12px;border-radius:20px;font-size:12.5px;font-weight:700;cursor:pointer;border:none;}
+  .restock-bubble:hover{background:#C78F2E;}
 
   /* ---------- Modal ---------- */
   .modal-backdrop{
@@ -599,6 +601,23 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="modalResolveMissing">
+  <div class="modal">
+    <h3>Mark as handled</h3>
+    <p class="sub" id="resolveItemSub"></p>
+    <div class="field">
+      <label>Note (optional)</label>
+      <textarea id="resolveNote" rows="3" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
+      <button class="btn btn-ghost btn-sm" id="quickOutOfStockBtn" style="margin-top:8px;">Use: "Out of stock – need to buy"</button>
+    </div>
+    <div class="msg" id="resolveMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalResolveMissing')">Cancel</button>
+      <button class="btn btn-primary" id="confirmResolveBtn">Mark done</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ FIREBASE ============ -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -655,6 +674,7 @@ let checklistDayCheckins = [];
 let checkinsFeed = [];
 let notifFilter = 'missing';
 let urgentCounts = {};
+let restockNotes = [];
 let itemsMgmtCollapsed = false, checklistCollapsed = false;
 
 function todayStr(offsetDays = 0){
@@ -827,8 +847,15 @@ function maybeStartUrgentListener(){
     .where('status','==','missing')
     .onSnapshot(snap => {
       urgentCounts = {};
+      restockNotes = [];
       snap.docs.forEach(d => {
         const r = d.data();
+        if(r.resolved){
+          if(r.resolvedNote){
+            restockNotes.push({ clinic: r.clinic, itemName: r.itemName, note: r.resolvedNote });
+          }
+          return;
+        }
         urgentCounts[r.clinic] = (urgentCounts[r.clinic] || 0) + 1;
       });
       renderUrgentBar();
@@ -837,13 +864,17 @@ function maybeStartUrgentListener(){
 
 function renderUrgentBar(){
   const el = document.getElementById('urgentBar');
-  const entries = Object.entries(urgentCounts).filter(([k,v]) => v > 0);
-  if(entries.length === 0){ el.style.display = 'none'; el.innerHTML = ''; return; }
+  const missingEntries = Object.entries(urgentCounts).filter(([k,v]) => v > 0);
+  if(missingEntries.length === 0 && restockNotes.length === 0){ el.style.display = 'none'; el.innerHTML = ''; return; }
   el.style.display = 'flex';
-  el.innerHTML = entries.map(([clinicKey, count]) => `
+  let html = missingEntries.map(([clinicKey, count]) => `
     <button class="urgent-bubble" data-clinic="${clinicKey}">⚠ Urgent — ${escapeHtml(clinicLabel(clinicKey))}: ${count} missing</button>
   `).join('');
-  el.querySelectorAll('.urgent-bubble').forEach(btn => {
+  html += restockNotes.map(r => `
+    <button class="restock-bubble" data-clinic="${r.clinic}">🛒 ${escapeHtml(clinicLabel(r.clinic))}: ${escapeHtml(r.itemName)} — ${escapeHtml(r.note)}</button>
+  `).join('');
+  el.innerHTML = html;
+  el.querySelectorAll('.urgent-bubble, .restock-bubble').forEach(btn => {
     btn.onclick = () => {
       activeClinic = btn.dataset.clinic;
       notifFilter = 'missing';
@@ -1793,7 +1824,7 @@ document.getElementById('confirmMissingBtn').onclick = async () => {
 
 function renderNotificationsFeed(){
   const el = document.getElementById('notificationsFeed');
-  const filtered = checkinsFeed.filter(c => notifFilter === 'missing' ? c.status === 'missing' : c.status === 'ok');
+  const filtered = checkinsFeed.filter(c => notifFilter === 'missing' ? (c.status === 'missing' && !c.resolved) : c.status === 'ok');
   if(filtered.length === 0){
     el.innerHTML = `<div class="empty-state">No ${notifFilter === 'missing' ? 'missing items' : 'checked items'} yet for ${escapeHtml(clinicLabel(activeClinic))}.</div>`;
     return;
@@ -1802,9 +1833,36 @@ function renderNotificationsFeed(){
     <div class="feed-item ${c.status==='missing'?'missing':''}">
       <div class="feed-top"><span>${escapeHtml(c.itemName)}</span><span>${c.status==='missing' ? `needs ${c.missingCount} ${UNIT_LABELS[c.unit]}${c.missingCount>1?'s':''}` : 'checked ✓'}</span></div>
       <div class="feed-sub">${escapeHtml(c.userName)} · ${fmtDateHuman(c.date)} at ${fmtTime(c.timestamp)}</div>
+      ${notifFilter==='missing' ? `<div style="margin-top:8px;"><button class="btn btn-ghost btn-sm" onclick="openResolveModal('${c.id}')">✕ Mark done — not missing anymore</button></div>` : ''}
     </div>
   `).join('');
 }
+
+let resolveTargetId = null;
+function openResolveModal(checkinId){
+  resolveTargetId = checkinId;
+  const c = checkinsFeed.find(x => x.id === checkinId);
+  document.getElementById('resolveItemSub').textContent = c ? `${c.itemName} — leave a note for admin/receptionist if needed (e.g. already ordered).` : 'Leave a note if needed.';
+  document.getElementById('resolveNote').value = '';
+  document.getElementById('resolveMsg').textContent = '';
+  openModal('modalResolveMissing');
+}
+document.getElementById('quickOutOfStockBtn').onclick = () => {
+  document.getElementById('resolveNote').value = 'Out of stock – need to buy';
+};
+document.getElementById('confirmResolveBtn').onclick = async () => {
+  const note = document.getElementById('resolveNote').value.trim();
+  const msg = document.getElementById('resolveMsg');
+  try{
+    await db.collection('checkins').doc(resolveTargetId).update({
+      resolved: true,
+      resolvedNote: note,
+      resolvedBy: currentProfile.name,
+      resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    closeModal('modalResolveMissing');
+  }catch(err){ msg.textContent = err.message; msg.className = 'msg err'; }
+};
 
 /* ---------------- MODAL HELPERS ---------------- */
 function openModal(id){ document.getElementById(id).classList.add('show'); }
