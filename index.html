@@ -601,23 +601,6 @@
   </div>
 </div>
 
-<div class="modal-backdrop" id="modalResolveMissing">
-  <div class="modal">
-    <h3>Mark as handled</h3>
-    <p class="sub" id="resolveItemSub"></p>
-    <div class="field">
-      <label>Note (optional)</label>
-      <textarea id="resolveNote" rows="3" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
-      <button class="btn btn-ghost btn-sm" id="quickOutOfStockBtn" style="margin-top:8px;">Use: "Out of stock – need to buy"</button>
-    </div>
-    <div class="msg" id="resolveMsg"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modalResolveMissing')">Cancel</button>
-      <button class="btn btn-primary" id="confirmResolveBtn">Mark done</button>
-    </div>
-  </div>
-</div>
-
 <!-- ============ FIREBASE ============ -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -859,6 +842,8 @@ function maybeStartUrgentListener(){
         urgentCounts[r.clinic] = (urgentCounts[r.clinic] || 0) + 1;
       });
       renderUrgentBar();
+    }, err => {
+      console.error('Urgent bubble listener failed:', err);
     });
 }
 
@@ -1833,36 +1818,26 @@ function renderNotificationsFeed(){
     <div class="feed-item ${c.status==='missing'?'missing':''}">
       <div class="feed-top"><span>${escapeHtml(c.itemName)}</span><span>${c.status==='missing' ? `needs ${c.missingCount} ${UNIT_LABELS[c.unit]}${c.missingCount>1?'s':''}` : 'checked ✓'}</span></div>
       <div class="feed-sub">${escapeHtml(c.userName)} · ${fmtDateHuman(c.date)} at ${fmtTime(c.timestamp)}</div>
-      ${notifFilter==='missing' ? `<div style="margin-top:8px;"><button class="btn btn-ghost btn-sm" onclick="openResolveModal('${c.id}')">✕ Mark done — not missing anymore</button></div>` : ''}
+      ${notifFilter==='missing' ? `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="resolveCheckin('${c.id}','')">✓ Done</button>
+        <button class="btn btn-coral btn-sm" onclick="resolveCheckin('${c.id}','Out of stock – need to buy')">📦 Out of stock – need to buy</button>
+      </div>` : ''}
     </div>
   `).join('');
 }
 
-let resolveTargetId = null;
-function openResolveModal(checkinId){
-  resolveTargetId = checkinId;
-  const c = checkinsFeed.find(x => x.id === checkinId);
-  document.getElementById('resolveItemSub').textContent = c ? `${c.itemName} — leave a note for admin/receptionist if needed (e.g. already ordered).` : 'Leave a note if needed.';
-  document.getElementById('resolveNote').value = '';
-  document.getElementById('resolveMsg').textContent = '';
-  openModal('modalResolveMissing');
-}
-document.getElementById('quickOutOfStockBtn').onclick = () => {
-  document.getElementById('resolveNote').value = 'Out of stock – need to buy';
-};
-document.getElementById('confirmResolveBtn').onclick = async () => {
-  const note = document.getElementById('resolveNote').value.trim();
-  const msg = document.getElementById('resolveMsg');
+async function resolveCheckin(checkinId, note){
   try{
-    await db.collection('checkins').doc(resolveTargetId).update({
+    await db.collection('checkins').doc(checkinId).update({
       resolved: true,
-      resolvedNote: note,
+      resolvedNote: note || '',
       resolvedBy: currentProfile.name,
       resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    closeModal('modalResolveMissing');
-  }catch(err){ msg.textContent = err.message; msg.className = 'msg err'; }
-};
+  }catch(err){
+    alert('Could not update: ' + err.message + '\n\nIf this says "permission denied", your Firestore rules for the checkins collection need to allow the Supervision permission to write, not just admin/checkin/adminItems.');
+  }
+}
 
 /* ---------------- MODAL HELPERS ---------------- */
 function openModal(id){ document.getElementById(id).classList.add('show'); }
