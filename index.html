@@ -1596,16 +1596,16 @@ function loadChecklistTab(){
     document.getElementById('notifClinicLabel').textContent = clinicLabel(activeClinic);
     updateNotifTabButtons();
     if(unsubFeed) unsubFeed();
+    // NOTE: orderBy('timestamp','desc') is required alongside limit(150) so the
+    // "most recent 150" is deterministic. Without it, Firestore returns an
+    // arbitrary 150-doc window that can shift on every write, which made
+    // freshly-flagged "missing" items flash and then vanish from this feed.
     unsubFeed = db.collection('checkins')
       .where('clinic','==',activeClinic)
+      .orderBy('timestamp','desc')
       .limit(150)
       .onSnapshot(snap => {
-        checkinsFeed = snap.docs.map(d => ({ id:d.id, ...d.data() }))
-          .sort((a,b) => {
-            const ta = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : 0;
-            const tb = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : 0;
-            return tb - ta;
-          });
+        checkinsFeed = snap.docs.map(d => ({ id:d.id, ...d.data() }));
         renderNotificationsFeed();
       }, err => { document.getElementById('notificationsFeed').innerHTML = permissionErrorHtml(err); });
   }
