@@ -242,6 +242,8 @@
   .urgent-bubble:hover{background:var(--coral-dark);}
   .restock-bubble{display:inline-flex;align-items:center;gap:6px;background:var(--amber);color:#3A2A05;padding:6px 12px;border-radius:20px;font-size:12.5px;font-weight:700;cursor:pointer;border:none;}
   .restock-bubble:hover{background:#C78F2E;}
+  .shift-length-btn.active{background:var(--teal-700);color:white;border-color:var(--teal-700);}
+  .tag-half{background:#EAF3EF;color:#1C7A8C;}
 
   /* ---------- Modal ---------- */
   .modal-backdrop{
@@ -502,6 +504,13 @@
     <h3 id="templateModalTitle">Add shift type</h3>
     <input type="hidden" id="templateId">
     <div class="field"><label>Label</label><input id="templateLabel" placeholder="Morning"></div>
+    <div class="field"><label>Shift length</label>
+      <input type="hidden" id="templateLength" value="full">
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="btn btn-ghost btn-sm shift-length-btn" id="lengthFullBtn" data-length="full" style="flex:1;">Full shift</button>
+        <button type="button" class="btn btn-ghost btn-sm shift-length-btn" id="lengthHalfBtn" data-length="half" style="flex:1;">Half shift</button>
+      </div>
+    </div>
     <div class="field"><label>Start time</label><input id="templateStart" type="time" value="08:00"></div>
     <div class="field"><label>End time</label><input id="templateEnd" type="time" value="14:00"></div>
     <div class="field"><label>Color</label>
@@ -891,7 +900,7 @@ function renderTemplatesList(){
     <div class="shift-row">
       <div class="colorbar" style="background:${t.active === false ? '#9AA6A3' : (t.color || 'var(--teal-500)')}"></div>
       <div class="rowmain">
-        <div class="t1">${escapeHtml(t.label)} ${t.active === false ? '<span class="tag tag-inactive">Unavailable</span>' : ''}</div>
+        <div class="t1">${escapeHtml(t.label)} <span class="tag tag-half">${t.length === 'half' ? 'Half shift' : 'Full shift'}</span> ${t.active === false ? '<span class="tag tag-inactive">Unavailable</span>' : ''}</div>
         <div class="t2">${to12h(t.start)} – ${to12h(t.end)}</div>
       </div>
       <div class="rowactions">
@@ -907,6 +916,14 @@ function toggleTemplateActive(id, makeActive){
   db.collection('shiftTemplates').doc(id).update({ active: makeActive }).catch(err => alert('Could not update: ' + err.message));
 }
 
+function setTemplateLength(length){
+  document.getElementById('templateLength').value = length;
+  document.querySelectorAll('.shift-length-btn').forEach(b => b.classList.toggle('active', b.dataset.length === length));
+}
+document.querySelectorAll('.shift-length-btn').forEach(btn => {
+  btn.onclick = () => setTemplateLength(btn.dataset.length);
+});
+
 document.getElementById('openAddTemplateModal').onclick = () => {
   document.getElementById('templateModalTitle').textContent = 'Add shift type';
   document.getElementById('templateId').value = '';
@@ -914,6 +931,7 @@ document.getElementById('openAddTemplateModal').onclick = () => {
   document.getElementById('templateStart').value = '08:00';
   document.getElementById('templateEnd').value = '14:00';
   document.getElementById('templateColor').value = '#1C7A8C';
+  setTemplateLength('full');
   document.getElementById('templateMsg').textContent = '';
   openModal('modalAddTemplate');
 };
@@ -927,6 +945,7 @@ function editTemplate(id){
   document.getElementById('templateStart').value = t.start;
   document.getElementById('templateEnd').value = t.end;
   document.getElementById('templateColor').value = t.color || '#1C7A8C';
+  setTemplateLength(t.length === 'half' ? 'half' : 'full');
   document.getElementById('templateMsg').textContent = '';
   openModal('modalAddTemplate');
 }
@@ -942,9 +961,10 @@ document.getElementById('saveTemplateBtn').onclick = async () => {
   const start = document.getElementById('templateStart').value;
   const end = document.getElementById('templateEnd').value;
   const color = document.getElementById('templateColor').value;
+  const length = document.getElementById('templateLength').value === 'half' ? 'half' : 'full';
   const msg = document.getElementById('templateMsg');
   if(!label || !start || !end){ msg.textContent = 'Fill in all fields.'; msg.className='msg err'; return; }
-  const data = { label, start, end, color };
+  const data = { label, start, end, color, length };
   try{
     if(id) await db.collection('shiftTemplates').doc(id).update(data);
     else await db.collection('shiftTemplates').add(data);
@@ -1119,8 +1139,11 @@ function renderShiftCounts(rows){
 
   rows.forEach(r => {
     if(!r.date || !r.doctorId) return;
-    if(!byDoctor[r.doctorId]) byDoctor[r.doctorId] = { name: r.doctorName || 'Unknown', count: 0 };
-    byDoctor[r.doctorId].count += 1;
+    if(!byDoctor[r.doctorId]) byDoctor[r.doctorId] = { name: r.doctorName || 'Unknown', full: 0, half: 0 };
+    if(!r.unavailable){
+      if(r.length === 'half') byDoctor[r.doctorId].half += 1;
+      else byDoctor[r.doctorId].full += 1;
+    }
   });
 
   const doctors = Object.values(byDoctor).sort((a, b) => a.name.localeCompare(b.name));
@@ -1131,11 +1154,12 @@ function renderShiftCounts(rows){
   }
 
   el.innerHTML = `<table class="datatable"><thead><tr>
-      <th>Doctor</th><th style="text-align:center;">Shifts this month</th>
+      <th>Doctor</th><th style="text-align:center;">Full shifts</th><th style="text-align:center;">Half shifts</th>
     </tr></thead><tbody>
       ${doctors.map(d => `<tr>
         <td>${escapeHtml(d.name)}</td>
-        <td style="text-align:center;font-weight:700;">${d.count}</td>
+        <td style="text-align:center;font-weight:700;">${d.full}</td>
+        <td style="text-align:center;font-weight:700;">${d.half}</td>
       </tr>`).join('')}
     </tbody></table>`;
 }
@@ -1166,7 +1190,7 @@ function renderDoctorsList(rows){
       <div class="colorbar" style="background:${color}"></div>
       <div class="rowmain">
         <div class="t1">${escapeHtml(r.doctorName)}</div>
-        <div class="t2">${escapeHtml(r.label || '')} · ${to12h(r.start)} – ${to12h(r.end)}</div>
+        <div class="t2">${escapeHtml(r.label || '')} <span class="tag tag-half">${r.length === 'half' ? 'Half' : 'Full'}</span> · ${to12h(r.start)} – ${to12h(r.end)}</div>
       </div>
       ${canManage ? `<div class="rowactions"><button class="btn btn-danger btn-sm" onclick="removeDoctorShift('${r.id}')">Remove</button></div>` : ''}
     </div>`;
@@ -1264,8 +1288,8 @@ document.getElementById('openAddShiftModal').onclick = async () => {
 function fillShiftTemplateOptions(){
   const sel = document.getElementById('shiftTemplate');
   sel.innerHTML = shiftTemplates.map(t => t.active === false
-    ? `<option value="${t.id}" disabled>${escapeHtml(t.label)} (${to12h(t.start)}–${to12h(t.end)}) — unavailable</option>`
-    : `<option value="${t.id}">${escapeHtml(t.label)} (${to12h(t.start)}–${to12h(t.end)})</option>`
+    ? `<option value="${t.id}" disabled>${escapeHtml(t.label)} (${t.length === 'half' ? 'Half' : 'Full'} · ${to12h(t.start)}–${to12h(t.end)}) — unavailable</option>`
+    : `<option value="${t.id}">${escapeHtml(t.label)} (${t.length === 'half' ? 'Half' : 'Full'} · ${to12h(t.start)}–${to12h(t.end)})</option>`
   ).join('') || '<option value="">Add a shift type first</option>';
 }
 
@@ -1281,7 +1305,7 @@ document.getElementById('saveShiftBtn').onclick = async () => {
   try{
     await db.collection('doctorShifts').doc(`${doctorId}_${date}`).set({
       doctorId, doctorName, date,
-      shiftTemplateId: tmpl.id, label: tmpl.label, start: tmpl.start, end: tmpl.end,
+      shiftTemplateId: tmpl.id, label: tmpl.label, start: tmpl.start, end: tmpl.end, length: tmpl.length === 'half' ? 'half' : 'full',
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     closeModal('modalAddShift');
@@ -1330,8 +1354,8 @@ function renderMySchedule(dates, existing){
   const el = document.getElementById('myScheduleList');
   const options = ['<option value="">Not coming</option>', '<option value="__unavailable__">Unavailable</option>'].concat(
     shiftTemplates.map(t => t.active === false
-      ? `<option value="${t.id}" disabled>${escapeHtml(t.label)} (${to12h(t.start)}–${to12h(t.end)}) — unavailable</option>`
-      : `<option value="${t.id}">${escapeHtml(t.label)} (${to12h(t.start)}–${to12h(t.end)})</option>`)
+      ? `<option value="${t.id}" disabled>${escapeHtml(t.label)} (${t.length === 'half' ? 'Half' : 'Full'} · ${to12h(t.start)}–${to12h(t.end)}) — unavailable</option>`
+      : `<option value="${t.id}">${escapeHtml(t.label)} (${t.length === 'half' ? 'Half' : 'Full'} · ${to12h(t.start)}–${to12h(t.end)})</option>`)
   ).join('');
 
   el.innerHTML = dates.map(ds => {
@@ -1373,7 +1397,7 @@ async function saveMyShift(date, selectEl){
       const tmpl = shiftTemplates.find(t => t.id === val);
       await db.collection('doctorShifts').doc(`${currentUser.uid}_${date}`).set({
         doctorId: currentUser.uid, doctorName: currentProfile.name, date,
-        shiftTemplateId: tmpl.id, label: tmpl.label, start: tmpl.start, end: tmpl.end,
+        shiftTemplateId: tmpl.id, label: tmpl.label, start: tmpl.start, end: tmpl.end, length: tmpl.length === 'half' ? 'half' : 'full',
         unavailable: false,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
