@@ -203,6 +203,18 @@
   .tag-shiftCounts{background:#EAF3EF;color:#1C7A8C;}
   .tag-adminItems{background:#F5E9D6;color:#8A5A12;}
   .tag-supervision{background:#FBE4E0;color:#B94A34;}
+  .tag-print{background:#E1EEF7;color:#1C5D8C;}
+  .print-row{display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  .print-row:last-child{border-bottom:none;}
+  #printSheetArea{display:none;}
+  @media print{
+    body > *:not(#printSheetArea){display:none !important;}
+    #printSheetArea{display:block !important;padding:24px;}
+    #printSheetArea img{width:100%;display:block;margin-bottom:24px;}
+    #printSheetArea table{width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px;}
+    #printSheetArea table th, #printSheetArea table td{border:1px solid #999;padding:7px 9px;text-align:left;}
+    #printSheetArea table th{background:#f2f2f2;}
+  }
   .tag-inactive{background:#F1E4E1;color:#A65038;}
   .perm-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 14px;}
   .perm-grid label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink);text-transform:none;letter-spacing:0;margin:0;}
@@ -468,6 +480,42 @@
         <div id="countsList"><div class="loading"><div class="spinner"></div>Loading…</div></div>
       </div>
     </div>
+
+    <!-- ===== PRINT TAB ===== -->
+    <div id="tab-print" class="tabpanel" style="display:none;">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Print</h2>
+          <span class="hint">Fill in the rows, then print onto your uploaded design</span>
+        </div>
+        <div class="day-row" style="align-items:flex-end;">
+          <div style="flex:1;min-width:180px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.03em;">Document type</label>
+            <select id="printTypeSelect" style="width:100%;padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;font-size:14px;"></select>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="uploadDesignBtn" style="display:none;">Upload/Edit design</button>
+          <input type="file" id="printPdfInput" accept="application/pdf" style="display:none;">
+        </div>
+        <div class="msg" id="printDesignMsg"></div>
+
+        <div id="printCurrencyRow" style="margin:16px 0;display:none;">
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.03em;">Currency</label>
+          <select id="printCurrencySelect" style="padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;font-size:14px;">
+            <option value="EUR">EUR</option>
+            <option value="EGP">EGP</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+
+        <div id="printRowsHead" style="display:flex;gap:8px;font-size:11px;text-transform:uppercase;color:var(--ink-soft);font-weight:700;padding:0 4px;margin:18px 0 6px;flex-wrap:wrap;"></div>
+        <div id="printRowsList"></div>
+        <button class="btn btn-ghost btn-sm" id="addPrintRowBtn" style="margin-top:12px;">+ Add row</button>
+
+        <div style="display:flex;justify-content:flex-end;margin-top:24px;">
+          <button class="btn btn-coral" id="doPrintBtn" style="padding:14px 34px;font-size:16px;border-radius:10px;">🖨️ Print</button>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -489,6 +537,7 @@
         <label><input type="checkbox" id="permShiftCounts"> See shift counts</label>
         <label><input type="checkbox" id="permAdminItems"> Admin items</label>
         <label><input type="checkbox" id="permSupervision"> Supervision</label>
+        <label><input type="checkbox" id="permPrint"> Print</label>
       </div>
     </div>
     <div class="msg" id="staffMsg"></div>
@@ -610,10 +659,21 @@
   </div>
 </div>
 
+<div id="printSheetArea">
+  <img id="printLetterheadImg" src="" alt="">
+  <table id="printSheetTable"></table>
+</div>
+
 <!-- ============ FIREBASE ============ -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  if(window.pdfjsLib){
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+</script>
 
 <script>
 /* =========================================================================
@@ -649,8 +709,8 @@ const CLINICS = [
 ];
 const UNIT_LABELS = {box:'box', bag:'bag', bottle:'bottle', tube:'tube', normal:'unit'};
 const DEFAULT_ITEMS = {"physio_nutrition": [{"name": "plastic cupping", "unit": "bag", "minCount": 2}, {"name": "parrafain oil small", "unit": "bottle", "minCount": 1}, {"name": "dry needling 25 mm", "unit": "box", "minCount": 1}, {"name": "dry needling 50 mm", "unit": "box", "minCount": 1}, {"name": "tongue depressor", "unit": "box", "minCount": 1}, {"name": "gloves medium", "unit": "box", "minCount": 1}, {"name": "gloves large", "unit": "box", "minCount": 1}, {"name": "Gel small", "unit": "bottle", "minCount": 1}, {"name": "tissues each room", "unit": "box", "minCount": 2}, {"name": "Inbody printer paper roll", "unit": "normal", "minCount": 1}, {"name": "insulin syringes", "unit": "normal", "minCount": 20}, {"name": "syringes 3cc", "unit": "normal", "minCount": 20}, {"name": "plaster", "unit": "normal", "minCount": 1}, {"name": "gauze towels pink", "unit": "bag", "minCount": 1}, {"name": "bed sheets blue", "unit": "normal", "minCount": 1}, {"name": "face mask white", "unit": "normal", "minCount": 1}, {"name": "blood pressure monitor", "unit": "normal", "minCount": 1}, {"name": "pulse oximeter", "unit": "normal", "minCount": 1}, {"name": "thermometer", "unit": "normal", "minCount": 1}, {"name": "stethoscope", "unit": "normal", "minCount": 1}, {"name": "alcohol small each room", "unit": "bottle", "minCount": 1}, {"name": "addavent", "unit": "normal", "minCount": 5}, {"name": "vitalipid", "unit": "normal", "minCount": 5}, {"name": "towels small", "unit": "normal", "minCount": 5}, {"name": "towels large", "unit": "normal", "minCount": 5}, {"name": "blood glucose meter", "unit": "normal", "minCount": 1}, {"name": "sterillium disinfectant 2 clinics", "unit": "bottle", "minCount": 2}], "er": [{"name": "thermometer", "unit": "normal", "minCount": 1}, {"name": "pulse oximeter", "unit": "normal", "minCount": 1}, {"name": "blood glucose meter", "unit": "normal", "minCount": 1}, {"name": "ecg paper", "unit": "normal", "minCount": 1}, {"name": "gloves Medium", "unit": "box", "minCount": 1}, {"name": "syringes 3cc", "unit": "normal", "minCount": 20}, {"name": "syringes 5cc", "unit": "normal", "minCount": 20}, {"name": "syringes 10cc", "unit": "normal", "minCount": 20}, {"name": "insulin syringes", "unit": "normal", "minCount": 20}, {"name": "plastic cannula", "unit": "normal", "minCount": 5}, {"name": "bandaid kit", "unit": "box", "minCount": 1}, {"name": "cotton bag", "unit": "bag", "minCount": 1}, {"name": "gauze 6x9", "unit": "normal", "minCount": 5}, {"name": "gauze 15x12", "unit": "normal", "minCount": 5}, {"name": "gauze small", "unit": "normal", "minCount": 5}, {"name": "gauze lrg", "unit": "normal", "minCount": 5}, {"name": "face mask", "unit": "box", "minCount": 1}, {"name": "elastic bandage 12x4", "unit": "normal", "minCount": 1}, {"name": "elastic bandage 15x4", "unit": "normal", "minCount": 1}, {"name": "alcohol bottle", "unit": "bottle", "minCount": 1}, {"name": "n.saline", "unit": "bottle", "minCount": 1}, {"name": "glucose solution", "unit": "bottle", "minCount": 1}, {"name": "ringer solution", "unit": "bottle", "minCount": 1}], "skincare": [{"name": "towels small", "unit": "normal", "minCount": 5}, {"name": "towels medium", "unit": "normal", "minCount": 5}, {"name": "gloves", "unit": "box", "minCount": 1}, {"name": "facemask", "unit": "box", "minCount": 1}, {"name": "plaster", "unit": "normal", "minCount": 1}, {"name": "alcohol small", "unit": "bottle", "minCount": 1}, {"name": "sterillium disinfectant", "unit": "bottle", "minCount": 1}, {"name": "oxyogeneo capsules", "unit": "box", "minCount": 1}, {"name": "overhead covers", "unit": "bag", "minCount": 1}, {"name": "cotton", "unit": "bag", "minCount": 1}, {"name": "sheet mask", "unit": "bag", "minCount": 1}, {"name": "facial mask", "unit": "box", "minCount": 1}, {"name": "Skin whitening vitals", "unit": "normal", "minCount": 1}, {"name": "hair growth vials", "unit": "normal", "minCount": 1}, {"name": "lip booseter", "unit": "normal", "minCount": 1}, {"name": "nuxe face scrub", "unit": "normal", "minCount": 1}, {"name": "eva anti aging serum", "unit": "normal", "minCount": 1}, {"name": "fenfresh wash", "unit": "normal", "minCount": 1}, {"name": "vaseline body oil", "unit": "normal", "minCount": 1}, {"name": "nivea body lotion", "unit": "normal", "minCount": 1}, {"name": "vaseline lip therapy", "unit": "normal", "minCount": 1}, {"name": "joe vitality lip scrub", "unit": "normal", "minCount": 1}, {"name": "lip scrub", "unit": "normal", "minCount": 1}, {"name": "blusher", "unit": "normal", "minCount": 1}, {"name": "mandelic acid serum", "unit": "normal", "minCount": 1}, {"name": "opening pores serum", "unit": "normal", "minCount": 1}, {"name": "ultra brightening serum", "unit": "normal", "minCount": 1}, {"name": "lactic acid serum", "unit": "normal", "minCount": 1}, {"name": "tca serum", "unit": "normal", "minCount": 1}, {"name": "glyolic acid serum", "unit": "normal", "minCount": 1}, {"name": "salicylic acid serum", "unit": "normal", "minCount": 1}, {"name": "retinol serum", "unit": "normal", "minCount": 1}, {"name": "ultraglam cleanser", "unit": "normal", "minCount": 1}, {"name": "ultraglam moisutrizer", "unit": "normal", "minCount": 1}, {"name": "ultraglam nlacinamide serum", "unit": "normal", "minCount": 1}, {"name": "essentuials body scrub", "unit": "normal", "minCount": 1}, {"name": "bobana body scurb", "unit": "normal", "minCount": 1}, {"name": "bobana whitening mask", "unit": "normal", "minCount": 1}, {"name": "bobana hyaluronic peeling mask", "unit": "normal", "minCount": 1}, {"name": "bobana mud mask", "unit": "normal", "minCount": 1}, {"name": "moist toner", "unit": "normal", "minCount": 1}, {"name": "centella cica - toner", "unit": "normal", "minCount": 1}, {"name": "centella cica - serum", "unit": "normal", "minCount": 1}, {"name": "centella cica - eye cream", "unit": "normal", "minCount": 1}, {"name": "centella cica - cream", "unit": "normal", "minCount": 1}, {"name": "centella whitening - serum", "unit": "normal", "minCount": 1}, {"name": "centella whitening - toner", "unit": "normal", "minCount": 1}, {"name": "centella whitening - cleanser", "unit": "normal", "minCount": 1}, {"name": "centella whitening - sunscreen", "unit": "normal", "minCount": 1}, {"name": "centella whitening - cream", "unit": "normal", "minCount": 1}, {"name": "centella tea tree - spot cream", "unit": "normal", "minCount": 1}, {"name": "centella tea tree - sun milk", "unit": "normal", "minCount": 1}, {"name": "centella tea tree - relief ampoule", "unit": "normal", "minCount": 1}, {"name": "centella tea tree - cleanser", "unit": "normal", "minCount": 1}, {"name": "Centella Calming - serum", "unit": "normal", "minCount": 1}, {"name": "Centella Calming - clay mask", "unit": "normal", "minCount": 1}, {"name": "Centella Calming - sunscreen", "unit": "normal", "minCount": 1}, {"name": "Centella Calming - gel cream", "unit": "normal", "minCount": 1}, {"name": "Centella Calming - cleanser", "unit": "normal", "minCount": 1}, {"name": "Centella oily - toner", "unit": "normal", "minCount": 1}, {"name": "Centella oily - cleansing oil", "unit": "normal", "minCount": 1}, {"name": "Centella oily - calming pad", "unit": "normal", "minCount": 1}, {"name": "Centella oily - cream", "unit": "normal", "minCount": 1}, {"name": "Centella hyalu - sun serum", "unit": "normal", "minCount": 1}, {"name": "Centella hyalu - sun stick", "unit": "normal", "minCount": 1}, {"name": "Centella hyalu - sleeping mask", "unit": "normal", "minCount": 1}, {"name": "Betaderm", "unit": "bottle", "minCount": 1}, {"name": "hepta panthenol", "unit": "bottle", "minCount": 1}, {"name": "spectragel", "unit": "bottle", "minCount": 1}], "plastic": [{"name": "mirror", "unit": "normal", "minCount": 1}, {"name": "napkins bag", "unit": "bag", "minCount": 1}, {"name": "face mask", "unit": "box", "minCount": 1}, {"name": "pen mark", "unit": "normal", "minCount": 1}, {"name": "alcohol bottle small", "unit": "bottle", "minCount": 1}, {"name": "alcohol swab", "unit": "box", "minCount": 1}, {"name": "cotton bag", "unit": "bag", "minCount": 1}, {"name": "cannula needles/filler cannula", "unit": "normal", "minCount": 1}, {"name": "bandaid", "unit": "normal", "minCount": 20}, {"name": "insulin syringes", "unit": "normal", "minCount": 20}, {"name": "syringes 3cc", "unit": "normal", "minCount": 20}, {"name": "cotton and gauze packs", "unit": "normal", "minCount": 1}, {"name": "gloves", "unit": "box", "minCount": 1}, {"name": "محلول ملحي", "unit": "bottle", "minCount": 3}, {"name": "vitamin E", "unit": "box", "minCount": 1}, {"name": "avil", "unit": "box", "minCount": 1}, {"name": "dexamethasone", "unit": "box", "minCount": 1}, {"name": "hydrocortisone", "unit": "box", "minCount": 1}, {"name": "brodakyeen", "unit": "normal", "minCount": 1}], "dental": [{"name": "whitening kit", "unit": "box", "minCount": 1}, {"name": "napkins", "unit": "bag", "minCount": 1}, {"name": "gates mani", "unit": "box", "minCount": 1}, {"name": "H.K Files (assorted)", "unit": "box", "minCount": 1}, {"name": "gloves nitrile", "unit": "box", "minCount": 1}, {"name": "syringe 3cc", "unit": "normal", "minCount": 20}, {"name": "mixing tip", "unit": "box", "minCount": 1}, {"name": "saliva ejector", "unit": "box", "minCount": 1}, {"name": "needle irrigation", "unit": "box", "minCount": 1}, {"name": "needles china long", "unit": "box", "minCount": 1}, {"name": "blade size 11", "unit": "box", "minCount": 1}, {"name": "suture egy sorb", "unit": "box", "minCount": 1}, {"name": "cotton roll", "unit": "box", "minCount": 1}, {"name": "articulating paper", "unit": "box", "minCount": 1}, {"name": "putty elite P&P", "unit": "box", "minCount": 1}, {"name": "light body elite", "unit": "box", "minCount": 1}, {"name": "alginate tropicalgin", "unit": "bag", "minCount": 1}, {"name": "masks", "unit": "box", "minCount": 1}, {"name": "Sleeves", "unit": "box", "minCount": 1}, {"name": "impression paste cavix", "unit": "normal", "minCount": 1}, {"name": "temporary crown", "unit": "normal", "minCount": 1}, {"name": "Vio seal SPI", "unit": "tube", "minCount": 1}, {"name": "Fissure sealant", "unit": "normal", "minCount": 1}, {"name": "Composite BEA", "unit": "tube", "minCount": 1}, {"name": "Composite dentsphy", "unit": "tube", "minCount": 1}, {"name": "Eva composite", "unit": "tube", "minCount": 1}, {"name": "Glass Ionomer Nova Cement", "unit": "box", "minCount": 1}, {"name": "Fuji 3 capsules", "unit": "normal", "minCount": 1}, {"name": "temporary cement charm", "unit": "normal", "minCount": 1}, {"name": "total cem itena", "unit": "tube", "minCount": 1}, {"name": "mta", "unit": "tube", "minCount": 1}, {"name": "calcium hydroxide", "unit": "tube", "minCount": 1}, {"name": "bond bisvo selfetch 4ml", "unit": "tube", "minCount": 1}, {"name": "acid h cream", "unit": "tube", "minCount": 1}, {"name": "porcelain etch ultradent", "unit": "tube", "minCount": 1}, {"name": "silane ultradent", "unit": "tube", "minCount": 1}, {"name": "sodium hypochlorite 2%", "unit": "box", "minCount": 1}, {"name": "Chlorhexidine 2%", "unit": "box", "minCount": 1}, {"name": "mouth wash tablet psp", "unit": "box", "minCount": 1}, {"name": "fluroide vamish", "unit": "normal", "minCount": 1}, {"name": "dental floss", "unit": "box", "minCount": 1}, {"name": "polish paste alpha", "unit": "box", "minCount": 1}, {"name": "finishing discs", "unit": "box", "minCount": 1}, {"name": "finishing strip 25", "unit": "box", "minCount": 1}, {"name": "celluloid strip", "unit": "box", "minCount": 1}, {"name": "matrix band 12 pkt", "unit": "box", "minCount": 1}, {"name": "matrix sectional", "unit": "box", "minCount": 1}, {"name": "wedges", "unit": "box", "minCount": 1}, {"name": "retraction cord", "unit": "box", "minCount": 1}, {"name": "dam rubber sheets", "unit": "box", "minCount": 1}, {"name": "wax", "unit": "box", "minCount": 1}, {"name": "brushes for composite", "unit": "box", "minCount": 1}, {"name": "bond brush 100pk", "unit": "box", "minCount": 1}, {"name": "tip for etch", "unit": "bag", "minCount": 1}, {"name": "guta percha 4/6 meta", "unit": "box", "minCount": 1}, {"name": "rotary e-flex gold", "unit": "normal", "minCount": 1}, {"name": "bur carbide germany", "unit": "normal", "minCount": 1}, {"name": "egyptian high speed?", "unit": "normal", "minCount": 1}, {"name": "okodent", "unit": "normal", "minCount": 1}, {"name": "mani original", "unit": "normal", "minCount": 1}, {"name": "bur endo z", "unit": "normal", "minCount": 1}, {"name": "topical usa", "unit": "box", "minCount": 1}, {"name": "artinibsa (anaesthetic)", "unit": "box", "minCount": 1}, {"name": "hemostop jk", "unit": "box", "minCount": 1}, {"name": "edta cream meta", "unit": "box", "minCount": 1}, {"name": "flow voco", "unit": "box", "minCount": 1}, {"name": "denu dam", "unit": "box", "minCount": 1}, {"name": "oil spray topdental", "unit": "bottle", "minCount": 1}], "float": [{"name": "towel lrg", "unit": "normal", "minCount": 1}, {"name": "towel medium", "unit": "normal", "minCount": 1}, {"name": "showergel", "unit": "bottle", "minCount": 1}, {"name": "soap", "unit": "normal", "minCount": 1}]};
-const PERM_KEYS = ['admin','schedule','checkin','receptionist','shiftCounts','adminItems','supervision'];
-const PERM_LABELS = {admin:'Admin', schedule:'Schedule', checkin:'Check-in', receptionist:'Receptionist', shiftCounts:'Shift counts', adminItems:'Admin items', supervision:'Supervision'};
+const PERM_KEYS = ['admin','schedule','checkin','receptionist','shiftCounts','adminItems','supervision','print'];
+const PERM_LABELS = {admin:'Admin', schedule:'Schedule', checkin:'Check-in', receptionist:'Receptionist', shiftCounts:'Shift counts', adminItems:'Admin items', supervision:'Supervision', print:'Print'};
 
 let currentUser = null;
 let currentProfile = null;
@@ -699,7 +759,7 @@ function escapeHtml(s){
 
 /* ---------------- PERMISSIONS ---------------- */
 function getPerms(profile){
-  const blank = {admin:false,schedule:false,checkin:false,receptionist:false,shiftCounts:false,adminItems:false,supervision:false};
+  const blank = {admin:false,schedule:false,checkin:false,receptionist:false,shiftCounts:false,adminItems:false,supervision:false,print:false};
   if(profile.permissions) return Object.assign({}, blank, profile.permissions);
   const p = Object.assign({}, blank);
   if(profile.role==='admin') p.admin = true;
@@ -797,6 +857,7 @@ function buildTabs(){
   if(p.checkin || p.adminItems || p.supervision) tabs.push({ id:'checklist', label:'Checklist' });
   if(p.admin) tabs.push({ id:'staff', label:'Staff' }, { id:'templates', label:'Shift templates' });
   if(p.admin || p.shiftCounts) tabs.push({ id:'counts', label:'Shift counts' });
+  if(p.admin || p.print) tabs.push({ id:'print', label:'Print' });
   const nav = document.getElementById('tabsNav');
   nav.innerHTML = '';
   tabs.forEach(t => {
@@ -822,10 +883,11 @@ function switchTab(id){
   if(id === 'templates') loadTemplatesTab();
   if(id === 'counts'){ countsMonth = todayStr().slice(0, 7); loadShiftCounts(); }
   if(id === 'checklist'){ renderClinicSubtabs(); loadChecklistTab(); }
+  if(id === 'print'){ loadPrintTypes(); }
 }
 
 function cleanupListeners(){
-  [unsubDoctors, unsubAppts, unsubTemplates, unsubStaff, unsubMySchedule, unsubRangeShifts, unsubRangeAppts, unsubCounts, unsubItems, unsubChecklistDay, unsubFeed, unsubUrgent].forEach(u => { if(u) u(); });
+  [unsubDoctors, unsubAppts, unsubTemplates, unsubStaff, unsubMySchedule, unsubRangeShifts, unsubRangeAppts, unsubCounts, unsubItems, unsubChecklistDay, unsubFeed, unsubUrgent, unsubPrintTypes].forEach(u => { if(u) u(); });
 }
 
 /* ---------------- URGENT MISSING BUBBLES ---------------- */
@@ -1515,7 +1577,7 @@ document.getElementById('openAddStaffModal').onclick = () => {
   document.getElementById('staffName').value = '';
   document.getElementById('staffEmail').value = '';
   document.getElementById('staffPassword').value = '';
-  ['permAdmin','permSchedule','permCheckin','permReceptionist','permShiftCounts','permAdminItems','permSupervision'].forEach(id => document.getElementById(id).checked = false);
+  ['permAdmin','permSchedule','permCheckin','permReceptionist','permShiftCounts','permAdminItems','permSupervision','permPrint'].forEach(id => document.getElementById(id).checked = false);
   document.getElementById('staffMsg').textContent = '';
   openModal('modalAddStaff');
 };
@@ -1531,7 +1593,8 @@ document.getElementById('saveStaffBtn').onclick = async () => {
     receptionist: document.getElementById('permReceptionist').checked,
     shiftCounts: document.getElementById('permShiftCounts').checked,
     adminItems: document.getElementById('permAdminItems').checked,
-    supervision: document.getElementById('permSupervision').checked
+    supervision: document.getElementById('permSupervision').checked,
+    print: document.getElementById('permPrint').checked
   };
   const msg = document.getElementById('staffMsg');
   if(!name || !email || password.length < 6){ msg.textContent = 'Fill all fields — password needs 6+ characters.'; msg.className='msg err'; return; }
@@ -1862,6 +1925,205 @@ async function resolveCheckin(checkinId, note){
     alert('Could not update: ' + err.message + '\n\nIf this says "permission denied", your Firestore rules for the checkins collection need to allow the Supervision permission to write, not just admin/checkin/adminItems.');
   }
 }
+
+/* =========================================================================
+   PRINT TAB
+   ========================================================================= */
+const PRINT_ROW_SCHEMAS = {
+  invoice: {
+    fields: [
+      {key:'name', label:'Name', type:'text'},
+      {key:'date', label:'Date', type:'date'},
+      {key:'service', label:'Service provided', type:'text'},
+      {key:'discount', label:'Discount', type:'text'},
+      {key:'tax', label:'Tax', type:'text'},
+      {key:'total', label:'Total', type:'text'}
+    ],
+    addLabel: '+ Add row',
+    hasCurrency: true
+  },
+  prescription: {
+    fields: [
+      {key:'name', label:'Name', type:'text'},
+      {key:'date', label:'Date', type:'date'},
+      {key:'med', label:'Medication provided', type:'text'},
+      {key:'when', label:'When to take it', type:'text'}
+    ],
+    addLabel: '+ Add meds',
+    hasCurrency: false
+  }
+};
+
+let printTypes = [];
+let currentPrintType = null;
+let printRows = [];
+let printCurrency = 'EUR';
+let printTemplateCache = {};
+let unsubPrintTypes = null;
+
+function loadPrintTypes(){
+  if(unsubPrintTypes) unsubPrintTypes();
+  unsubPrintTypes = db.collection('printTypes').orderBy('order').onSnapshot(snap => {
+    if(snap.empty){
+      const batch = db.batch();
+      batch.set(db.collection('printTypes').doc('invoice'), {label:'Invoice', schema:'invoice', order:0});
+      batch.set(db.collection('printTypes').doc('prescription'), {label:'Prescription', schema:'prescription', order:1});
+      batch.commit().catch(err => console.error('Could not seed print types:', err));
+      return;
+    }
+    printTypes = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    if(!currentPrintType || !printTypes.find(t => t.id === currentPrintType)){
+      currentPrintType = printTypes[0] ? printTypes[0].id : null;
+    }
+    renderPrintTypeSelect();
+  }, err => {
+    document.getElementById('printRowsList').innerHTML = permissionErrorHtml(err);
+  });
+}
+
+function currentPrintSchema(){
+  const type = printTypes.find(t => t.id === currentPrintType);
+  return PRINT_ROW_SCHEMAS[(type && type.schema) || 'invoice'];
+}
+
+function renderPrintTypeSelect(){
+  const sel = document.getElementById('printTypeSelect');
+  const isAdmin = currentProfile.permissions.admin;
+  const opts = printTypes.map(t => `<option value="${t.id}">${escapeHtml(t.label)}</option>`).join('');
+  sel.innerHTML = opts + (isAdmin ? `<option value="__add_new__">+ Add new type…</option>` : '');
+  if(currentPrintType) sel.value = currentPrintType;
+  document.getElementById('uploadDesignBtn').style.display = isAdmin ? 'inline-flex' : 'none';
+  loadTemplateForType(currentPrintType);
+  renderPrintRowsUI();
+}
+
+document.getElementById('printTypeSelect').onchange = (e) => {
+  if(e.target.value === '__add_new__'){
+    const name = prompt('Name for the new document type (e.g. "Referral Letter"):');
+    e.target.value = currentPrintType;
+    if(!name || !name.trim()) return;
+    db.collection('printTypes').add({ label: name.trim(), schema:'invoice', order: printTypes.length })
+      .then(doc => { currentPrintType = doc.id; })
+      .catch(err => alert('Could not add type: ' + err.message));
+    return;
+  }
+  currentPrintType = e.target.value;
+  printRows = [];
+  loadTemplateForType(currentPrintType);
+  renderPrintRowsUI();
+};
+
+document.getElementById('printCurrencySelect').onchange = (e) => {
+  printCurrency = e.target.value;
+};
+
+function loadTemplateForType(typeId){
+  if(!typeId) return;
+  db.collection('printTemplates').doc(typeId).get().then(doc => {
+    printTemplateCache[typeId] = doc.exists ? doc.data() : null;
+  }).catch(() => { printTemplateCache[typeId] = null; });
+}
+
+document.getElementById('uploadDesignBtn').onclick = () => document.getElementById('printPdfInput').click();
+
+document.getElementById('printPdfInput').onchange = async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file || !currentPrintType) return;
+  const msg = document.getElementById('printDesignMsg');
+  if(!window.pdfjsLib){
+    msg.textContent = 'The PDF reader library failed to load — check your internet connection and try again.';
+    msg.className = 'msg err';
+    return;
+  }
+  msg.textContent = 'Processing PDF…'; msg.className = 'msg';
+  try{
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const page = await pdf.getPage(1);
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width; canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    if(dataUrl.length > 900000){
+      msg.textContent = 'That design is too large/detailed to save — try a simpler one-page PDF.';
+      msg.className = 'msg err';
+      return;
+    }
+    await db.collection('printTemplates').doc(currentPrintType).set({ letterheadImageDataUrl: dataUrl, fileName: file.name });
+    msg.textContent = 'Design uploaded.'; msg.className = 'msg ok';
+    loadTemplateForType(currentPrintType);
+  }catch(err){
+    msg.textContent = 'Could not process that PDF: ' + err.message;
+    msg.className = 'msg err';
+  }
+};
+
+function renderPrintRowsUI(){
+  const schema = currentPrintSchema();
+  document.getElementById('printCurrencyRow').style.display = schema.hasCurrency ? 'block' : 'none';
+  document.getElementById('addPrintRowBtn').textContent = schema.addLabel;
+
+  const head = document.getElementById('printRowsHead');
+  head.innerHTML = schema.fields.map(f => `<div style="flex:1;min-width:100px;">${escapeHtml(f.label)}</div>`).join('') + `<div style="width:96px;flex-shrink:0;">Actions</div>`;
+
+  const list = document.getElementById('printRowsList');
+  if(printRows.length === 0){
+    list.innerHTML = '<div class="empty-state">No rows yet — add one below.</div>';
+    return;
+  }
+  list.innerHTML = printRows.map((row, idx) => `
+    <div class="print-row" data-idx="${idx}">
+      ${schema.fields.map(f => `<input data-field="${f.key}" type="${f.type === 'date' ? 'date' : 'text'}" value="${escapeHtml(row[f.key] || '')}" style="flex:1;min-width:100px;padding:8px 9px;border:1.5px solid var(--line);border-radius:6px;font-size:13.5px;">`).join('')}
+      <div style="width:96px;flex-shrink:0;display:flex;gap:4px;">
+        <button class="btn btn-ghost btn-sm" data-action="up" title="Move up" style="padding:6px 8px;">↑</button>
+        <button class="btn btn-ghost btn-sm" data-action="down" title="Move down" style="padding:6px 8px;">↓</button>
+        <button class="btn btn-danger btn-sm" data-action="remove" title="Remove" style="padding:6px 8px;">✕</button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.print-row').forEach(rowEl => {
+    const idx = Number(rowEl.dataset.idx);
+    rowEl.querySelectorAll('input').forEach(inp => {
+      inp.onchange = () => { printRows[idx][inp.dataset.field] = inp.value; };
+    });
+    rowEl.querySelector('[data-action="remove"]').onclick = () => { printRows.splice(idx, 1); renderPrintRowsUI(); };
+    rowEl.querySelector('[data-action="up"]').onclick = () => {
+      if(idx > 0){ [printRows[idx-1], printRows[idx]] = [printRows[idx], printRows[idx-1]]; renderPrintRowsUI(); }
+    };
+    rowEl.querySelector('[data-action="down"]').onclick = () => {
+      if(idx < printRows.length - 1){ [printRows[idx+1], printRows[idx]] = [printRows[idx], printRows[idx+1]]; renderPrintRowsUI(); }
+    };
+  });
+}
+
+document.getElementById('addPrintRowBtn').onclick = () => {
+  printRows.push({});
+  renderPrintRowsUI();
+};
+
+document.getElementById('doPrintBtn').onclick = () => {
+  const schema = currentPrintSchema();
+  const tmpl = printTemplateCache[currentPrintType];
+  const img = document.getElementById('printLetterheadImg');
+  if(tmpl && tmpl.letterheadImageDataUrl){
+    img.src = tmpl.letterheadImageDataUrl;
+    img.style.display = 'block';
+  } else {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+  }
+
+  const table = document.getElementById('printSheetTable');
+  const headHtml = `<tr>${schema.fields.map(f => `<th>${escapeHtml(f.label)}${f.key === 'total' && schema.hasCurrency ? ' (' + printCurrency + ')' : ''}</th>`).join('')}</tr>`;
+  const bodyHtml = printRows.map(row => `<tr>${schema.fields.map(f => `<td>${escapeHtml(row[f.key] || '')}</td>`).join('')}</tr>`).join('');
+  table.innerHTML = headHtml + bodyHtml;
+
+  window.print();
+};
 
 /* ---------------- MODAL HELPERS ---------------- */
 function openModal(id){ document.getElementById(id).classList.add('show'); }
