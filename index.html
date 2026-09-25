@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RaVida Staff</title>
+<title>RaVida Schedule/Checkins</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -204,16 +204,22 @@
   .tag-adminItems{background:#F5E9D6;color:#8A5A12;}
   .tag-supervision{background:#FBE4E0;color:#B94A34;}
   .tag-print{background:#E1EEF7;color:#1C5D8C;}
-  .print-row{display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
-  .print-row:last-child{border-bottom:none;}
+  .print-row-card{border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--mint-50);}
+  .print-row-fields{display:flex;flex-direction:column;gap:8px;}
+  .print-row-fields label{display:block;font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.02em;margin-bottom:3px;}
+  .print-row-fields input{width:100%;padding:8px 9px;border:1.5px solid var(--line);border-radius:6px;font-size:13.5px;}
+  .print-row-actions{display:flex;gap:6px;margin-top:10px;justify-content:flex-end;}
   #printSheetArea{display:none;}
   @media print{
     body > *:not(#printSheetArea){display:none !important;}
-    #printSheetArea{display:block !important;padding:24px;}
-    #printSheetArea img{width:100%;display:block;margin-bottom:24px;}
-    #printSheetArea table{width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px;}
-    #printSheetArea table th, #printSheetArea table td{border:1px solid #999;padding:7px 9px;text-align:left;}
-    #printSheetArea table th{background:#f2f2f2;}
+    #printSheetArea{display:block !important;padding:24px;font-family:Arial,sans-serif;}
+    #printSheetArea img{width:100%;display:block;margin-bottom:20px;}
+    #printSheetArea .ps-date{font-size:13px;text-align:left;margin-bottom:10px;}
+    #printSheetArea .ps-name{font-size:17px;font-weight:700;margin-bottom:18px;}
+    #printSheetArea .ps-row{padding:10px 0;border-bottom:1px solid #ccc;}
+    #printSheetArea .ps-row:last-child{border-bottom:none;}
+    #printSheetArea .ps-field{font-size:13px;margin-bottom:4px;}
+    #printSheetArea .ps-field strong{margin-right:4px;}
   }
   .tag-inactive{background:#F1E4E1;color:#A65038;}
   .perm-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 14px;}
@@ -298,7 +304,7 @@
 <div id="loginScreen">
   <div class="login-card">
     <div class="brand-mark">R</div>
-    <h1>RaVida Staff</h1>
+    <h1>RaVida Schedule/Checkins</h1>
     <p class="sub">Sign in with the account your admin created for you.</p>
     <div class="field">
       <label>Email</label>
@@ -322,7 +328,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">R</div>
-      <div class="brand-text">RaVida Staff</div>
+      <div class="brand-text">RaVida Schedule/Checkins</div>
     </div>
     <div class="who">
       <button class="btn btn-ghost btn-sm" id="changePwBtn" style="background:transparent;border-color:rgba(255,255,255,0.3);color:white;">Change password</button>
@@ -486,17 +492,34 @@
       <div class="panel">
         <div class="panel-head">
           <h2>Print</h2>
-          <span class="hint">Fill in the rows, then print onto your uploaded design</span>
+          <span class="hint">Fill in name, date, and the line items, then print onto your design</span>
         </div>
         <div class="day-row" style="align-items:flex-end;">
           <div style="flex:1;min-width:180px;">
             <label style="display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.03em;">Document type</label>
             <select id="printTypeSelect" style="width:100%;padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;font-size:14px;"></select>
           </div>
-          <button class="btn btn-ghost btn-sm" id="uploadDesignBtn" style="display:none;">Upload/Edit design</button>
-          <input type="file" id="printPdfInput" accept="application/pdf" style="display:none;">
+          <button class="btn btn-ghost btn-sm" id="toggleDesignFieldBtn" style="display:none;">+ Design</button>
+        </div>
+        <div id="designFieldRow" style="display:none;gap:8px;margin-top:10px;">
+          <input id="printDesignUrlInput" placeholder="Filename you uploaded to GitHub, e.g. invoice-design.png — or a full URL" style="flex:1;padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;font-size:13.5px;">
+          <button class="btn btn-ghost btn-sm" id="saveDesignUrlBtn">Save</button>
         </div>
         <div class="msg" id="printDesignMsg"></div>
+
+        <div class="panel" style="background:var(--mint-50);margin-top:16px;margin-bottom:0;box-shadow:none;">
+          <div style="font-size:11px;text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin-bottom:10px;">Header — once per document</div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:180px;">
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;">Name</label>
+              <input id="printHeaderName" placeholder="Patient / client name" style="width:100%;padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;font-size:14px;">
+            </div>
+            <div style="flex:1;min-width:180px;">
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;">Date (prints top-left)</label>
+              <input id="printHeaderDate" type="date" style="width:100%;padding:9px 10px;border:1.5px solid var(--line);border-radius:6px;font-size:14px;">
+            </div>
+          </div>
+        </div>
 
         <div id="printCurrencyRow" style="margin:16px 0;display:none;">
           <label style="display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.03em;">Currency</label>
@@ -507,7 +530,7 @@
           </select>
         </div>
 
-        <div id="printRowsHead" style="display:flex;gap:8px;font-size:11px;text-transform:uppercase;color:var(--ink-soft);font-weight:700;padding:0 4px;margin:18px 0 6px;flex-wrap:wrap;"></div>
+        <div style="font-size:11px;text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin:18px 0 8px;">Line items — add, remove, rearrange</div>
         <div id="printRowsList"></div>
         <button class="btn btn-ghost btn-sm" id="addPrintRowBtn" style="margin-top:12px;">+ Add row</button>
 
@@ -661,7 +684,9 @@
 
 <div id="printSheetArea">
   <img id="printLetterheadImg" src="" alt="">
-  <table id="printSheetTable"></table>
+  <div class="ps-date" id="printSheetDate"></div>
+  <div class="ps-name" id="printSheetName"></div>
+  <div id="printSheetRows"></div>
 </div>
 
 <!-- ============ FIREBASE ============ -->
@@ -1929,11 +1954,13 @@ async function resolveCheckin(checkinId, note){
 /* =========================================================================
    PRINT TAB
    ========================================================================= */
+const PRINT_HEADER_FIELDS = [
+  {key:'name', label:'Name', type:'text'},
+  {key:'date', label:'Date', type:'date'}
+];
 const PRINT_ROW_SCHEMAS = {
   invoice: {
     fields: [
-      {key:'name', label:'Name', type:'text'},
-      {key:'date', label:'Date', type:'date'},
       {key:'service', label:'Service provided', type:'text'},
       {key:'discount', label:'Discount', type:'text'},
       {key:'tax', label:'Tax', type:'text'},
@@ -1944,8 +1971,6 @@ const PRINT_ROW_SCHEMAS = {
   },
   prescription: {
     fields: [
-      {key:'name', label:'Name', type:'text'},
-      {key:'date', label:'Date', type:'date'},
       {key:'med', label:'Medication provided', type:'text'},
       {key:'when', label:'When to take it', type:'text'}
     ],
@@ -1960,6 +1985,8 @@ let printRows = [];
 let printCurrency = 'EUR';
 let printTemplateCache = {};
 let unsubPrintTypes = null;
+let printHeaderName = '';
+let printHeaderDate = '';
 
 function loadPrintTypes(){
   if(unsubPrintTypes) unsubPrintTypes();
@@ -1968,7 +1995,9 @@ function loadPrintTypes(){
       const batch = db.batch();
       batch.set(db.collection('printTypes').doc('invoice'), {label:'Invoice', schema:'invoice', order:0});
       batch.set(db.collection('printTypes').doc('prescription'), {label:'Prescription', schema:'prescription', order:1});
-      batch.commit().catch(err => console.error('Could not seed print types:', err));
+      batch.commit().catch(err => {
+        document.getElementById('printRowsList').innerHTML = permissionErrorHtml(err);
+      });
       return;
     }
     printTypes = snap.docs.map(d => ({ id:d.id, ...d.data() }));
@@ -1992,7 +2021,8 @@ function renderPrintTypeSelect(){
   const opts = printTypes.map(t => `<option value="${t.id}">${escapeHtml(t.label)}</option>`).join('');
   sel.innerHTML = opts + (isAdmin ? `<option value="__add_new__">+ Add new type…</option>` : '');
   if(currentPrintType) sel.value = currentPrintType;
-  document.getElementById('uploadDesignBtn').style.display = isAdmin ? 'inline-flex' : 'none';
+  document.getElementById('toggleDesignFieldBtn').style.display = isAdmin ? 'inline-flex' : 'none';
+  document.getElementById('designFieldRow').style.display = 'none';
   loadTemplateForType(currentPrintType);
   renderPrintRowsUI();
 }
@@ -2009,6 +2039,7 @@ document.getElementById('printTypeSelect').onchange = (e) => {
   }
   currentPrintType = e.target.value;
   printRows = [];
+  document.getElementById('designFieldRow').style.display = 'none';
   loadTemplateForType(currentPrintType);
   renderPrintRowsUI();
 };
@@ -2016,76 +2047,98 @@ document.getElementById('printTypeSelect').onchange = (e) => {
 document.getElementById('printCurrencySelect').onchange = (e) => {
   printCurrency = e.target.value;
 };
+document.getElementById('printHeaderName').oninput = (e) => { printHeaderName = e.target.value; };
+document.getElementById('printHeaderDate').onchange = (e) => { printHeaderDate = e.target.value; };
 
 function loadTemplateForType(typeId){
   if(!typeId) return;
   db.collection('printTemplates').doc(typeId).get().then(doc => {
     printTemplateCache[typeId] = doc.exists ? doc.data() : null;
+    const input = document.getElementById('printDesignUrlInput');
+    if(typeId === currentPrintType) input.value = (printTemplateCache[typeId] && printTemplateCache[typeId].designUrl) || '';
   }).catch(() => { printTemplateCache[typeId] = null; });
 }
 
-document.getElementById('uploadDesignBtn').onclick = () => document.getElementById('printPdfInput').click();
-
-document.getElementById('printPdfInput').onchange = async (e) => {
-  const file = e.target.files[0];
-  e.target.value = '';
-  if(!file || !currentPrintType) return;
-  const msg = document.getElementById('printDesignMsg');
-  if(!window.pdfjsLib){
-    msg.textContent = 'The PDF reader library failed to load — check your internet connection and try again.';
-    msg.className = 'msg err';
-    return;
+document.getElementById('toggleDesignFieldBtn').onclick = () => {
+  const row = document.getElementById('designFieldRow');
+  const showing = row.style.display !== 'none';
+  row.style.display = showing ? 'none' : 'flex';
+  if(!showing){
+    document.getElementById('printDesignUrlInput').value = (printTemplateCache[currentPrintType] && printTemplateCache[currentPrintType].designUrl) || '';
+    document.getElementById('printDesignUrlInput').focus();
   }
-  msg.textContent = 'Processing PDF…'; msg.className = 'msg';
+};
+
+document.getElementById('saveDesignUrlBtn').onclick = async () => {
+  const val = document.getElementById('printDesignUrlInput').value.trim();
+  const msg = document.getElementById('printDesignMsg');
+  if(!currentPrintType) return;
   try{
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    await db.collection('printTemplates').doc(currentPrintType).set({ designUrl: val });
+    printTemplateCache[currentPrintType] = { designUrl: val };
+    msg.textContent = val ? 'Design saved.' : 'Design cleared.';
+    msg.className = 'msg ok';
+  }catch(err){
+    msg.textContent = err.message;
+    msg.className = 'msg err';
+  }
+};
+
+/** Resolves the saved design reference to something usable as an <img> src.
+    Plain image filenames/URLs are used directly; PDFs are fetched and
+    rendered to an image on the fly via pdf.js. */
+async function resolvePrintLetterhead(typeId){
+  const tmpl = printTemplateCache[typeId];
+  if(!tmpl || !tmpl.designUrl) return null;
+  const url = tmpl.designUrl;
+  const isPdf = /\.pdf(\?|$)/i.test(url);
+  if(!isPdf) return url;
+  if(!window.pdfjsLib) return null;
+  try{
+    const pdf = await pdfjsLib.getDocument(url).promise;
     const page = await pdf.getPage(1);
     const viewport = page.getViewport({ scale: 1.5 });
     const canvas = document.createElement('canvas');
     canvas.width = viewport.width; canvas.height = viewport.height;
-    const ctx = canvas.getContext('2d');
-    await page.render({ canvasContext: ctx, viewport }).promise;
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-    if(dataUrl.length > 900000){
-      msg.textContent = 'That design is too large/detailed to save — try a simpler one-page PDF.';
-      msg.className = 'msg err';
-      return;
-    }
-    await db.collection('printTemplates').doc(currentPrintType).set({ letterheadImageDataUrl: dataUrl, fileName: file.name });
-    msg.textContent = 'Design uploaded.'; msg.className = 'msg ok';
-    loadTemplateForType(currentPrintType);
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    return canvas.toDataURL('image/jpeg', 0.9);
   }catch(err){
-    msg.textContent = 'Could not process that PDF: ' + err.message;
-    msg.className = 'msg err';
+    console.error('Could not render PDF design:', err);
+    return null;
   }
-};
+}
 
 function renderPrintRowsUI(){
   const schema = currentPrintSchema();
   document.getElementById('printCurrencyRow').style.display = schema.hasCurrency ? 'block' : 'none';
   document.getElementById('addPrintRowBtn').textContent = schema.addLabel;
-
-  const head = document.getElementById('printRowsHead');
-  head.innerHTML = schema.fields.map(f => `<div style="flex:1;min-width:100px;">${escapeHtml(f.label)}</div>`).join('') + `<div style="width:96px;flex-shrink:0;">Actions</div>`;
+  document.getElementById('printHeaderName').value = printHeaderName;
+  document.getElementById('printHeaderDate').value = printHeaderDate;
 
   const list = document.getElementById('printRowsList');
   if(printRows.length === 0){
-    list.innerHTML = '<div class="empty-state">No rows yet — add one below.</div>';
+    list.innerHTML = '<div class="empty-state">No line items yet — add one below.</div>';
     return;
   }
   list.innerHTML = printRows.map((row, idx) => `
-    <div class="print-row" data-idx="${idx}">
-      ${schema.fields.map(f => `<input data-field="${f.key}" type="${f.type === 'date' ? 'date' : 'text'}" value="${escapeHtml(row[f.key] || '')}" style="flex:1;min-width:100px;padding:8px 9px;border:1.5px solid var(--line);border-radius:6px;font-size:13.5px;">`).join('')}
-      <div style="width:96px;flex-shrink:0;display:flex;gap:4px;">
-        <button class="btn btn-ghost btn-sm" data-action="up" title="Move up" style="padding:6px 8px;">↑</button>
-        <button class="btn btn-ghost btn-sm" data-action="down" title="Move down" style="padding:6px 8px;">↓</button>
-        <button class="btn btn-danger btn-sm" data-action="remove" title="Remove" style="padding:6px 8px;">✕</button>
+    <div class="print-row-card" data-idx="${idx}">
+      <div class="print-row-fields">
+        ${schema.fields.map(f => `
+          <div>
+            <label>${escapeHtml(f.label)}${f.key === 'total' && schema.hasCurrency ? ' (' + printCurrency + ')' : ''}</label>
+            <input data-field="${f.key}" type="${f.type === 'date' ? 'date' : 'text'}" value="${escapeHtml(row[f.key] || '')}">
+          </div>
+        `).join('')}
+      </div>
+      <div class="print-row-actions">
+        <button class="btn btn-ghost btn-sm" data-action="up" title="Move up">↑</button>
+        <button class="btn btn-ghost btn-sm" data-action="down" title="Move down">↓</button>
+        <button class="btn btn-danger btn-sm" data-action="remove" title="Remove">✕</button>
       </div>
     </div>
   `).join('');
 
-  list.querySelectorAll('.print-row').forEach(rowEl => {
+  list.querySelectorAll('.print-row-card').forEach(rowEl => {
     const idx = Number(rowEl.dataset.idx);
     rowEl.querySelectorAll('input').forEach(inp => {
       inp.onchange = () => { printRows[idx][inp.dataset.field] = inp.value; };
@@ -2105,24 +2158,30 @@ document.getElementById('addPrintRowBtn').onclick = () => {
   renderPrintRowsUI();
 };
 
-document.getElementById('doPrintBtn').onclick = () => {
+document.getElementById('doPrintBtn').onclick = async () => {
   const schema = currentPrintSchema();
-  const tmpl = printTemplateCache[currentPrintType];
-  const img = document.getElementById('printLetterheadImg');
-  if(tmpl && tmpl.letterheadImageDataUrl){
-    img.src = tmpl.letterheadImageDataUrl;
-    img.style.display = 'block';
-  } else {
-    img.removeAttribute('src');
-    img.style.display = 'none';
+  const btn = document.getElementById('doPrintBtn');
+  btn.disabled = true;
+  try{
+    const img = document.getElementById('printLetterheadImg');
+    const letterheadSrc = await resolvePrintLetterhead(currentPrintType);
+    if(letterheadSrc){ img.src = letterheadSrc; img.style.display = 'block'; }
+    else { img.removeAttribute('src'); img.style.display = 'none'; }
+
+    document.getElementById('printSheetDate').textContent = printHeaderDate ? fmtDateHuman(printHeaderDate) : '';
+    document.getElementById('printSheetName').textContent = printHeaderName ? ('Name: ' + printHeaderName) : '';
+
+    const rowsHtml = printRows.map(row => `
+      <div class="ps-row">
+        ${schema.fields.map(f => `<div class="ps-field"><strong>${escapeHtml(f.label)}${f.key === 'total' && schema.hasCurrency ? ' (' + printCurrency + ')' : ''}:</strong>${escapeHtml(row[f.key] || '')}</div>`).join('')}
+      </div>
+    `).join('');
+    document.getElementById('printSheetRows').innerHTML = rowsHtml;
+
+    window.print();
+  }finally{
+    btn.disabled = false;
   }
-
-  const table = document.getElementById('printSheetTable');
-  const headHtml = `<tr>${schema.fields.map(f => `<th>${escapeHtml(f.label)}${f.key === 'total' && schema.hasCurrency ? ' (' + printCurrency + ')' : ''}</th>`).join('')}</tr>`;
-  const bodyHtml = printRows.map(row => `<tr>${schema.fields.map(f => `<td>${escapeHtml(row[f.key] || '')}</td>`).join('')}</tr>`).join('');
-  table.innerHTML = headHtml + bodyHtml;
-
-  window.print();
 };
 
 /* ---------------- MODAL HELPERS ---------------- */
